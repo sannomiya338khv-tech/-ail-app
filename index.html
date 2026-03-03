@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>メールテンプレート管理 (Cloud)</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mail Cloud">
+  
+  <!-- iOS用アイコン自動生成スクリプト -->
+  <script>
+    (function(){
+      var c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      var ctx = c.getContext('2d');
+      // 背景をオレンジに
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(0,0,256,256);
+      // 白いメールの線を描画
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 16;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.strokeRect(48, 72, 160, 112);
+      ctx.beginPath();
+      ctx.moveTo(48, 72);
+      ctx.lineTo(128, 136);
+      ctx.lineTo(208, 72);
+      ctx.stroke();
+      
+      var link = document.createElement('link');
+      link.rel = 'apple-touch-icon';
+      link.href = c.toDataURL('image/png');
+      document.head.appendChild(link);
+      
+      var icon = document.createElement('link');
+      icon.rel = 'icon';
+      icon.type = 'image/png';
+      icon.href = c.toDataURL('image/png');
+      document.head.appendChild(icon);
+    })();
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Firebase 安定版 SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    .pt-safe { padding-top: env(safe-area-inset-top); }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+    .animate-fade-in-up { animation: fadeInUp 0.3s ease-out; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const Icon = ({ path, size = 24, className = "" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
+    );
+    const Search = (p) => <Icon {...p} path={<g><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></g>} />;
+    const Copy = (p) => <Icon {...p} path={<g><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g>} />;
+    const Plus = (p) => <Icon {...p} path={<g><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></g>} />;
+    const Edit2 = (p) => <Icon {...p} path={<g><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></g>} />;
+    const Trash2 = (p) => <Icon {...p} path={<g><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></g>} />;
+    const Check = (p) => <Icon {...p} path={<polyline points="20 6 9 17 4 12"/>} />;
+    const Send = (p) => <Icon {...p} path={<g><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></g>} />;
+    const Folder = (p) => <Icon {...p} path={<g><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></g>} />;
+    const MessageSquare = (p) => <Icon {...p} path={<g><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></g>} />;
+    const Clock = (p) => <Icon {...p} path={<g><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></g>} />;
+    const RotateCcw = (p) => <Icon {...p} path={<g><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></g>} />;
+    const Save = (p) => <Icon {...p} path={<g><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></g>} />;
+    const X = (p) => <Icon {...p} path={<g><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></g>} />;
+    const Menu = (p) => <Icon {...p} path={<g><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></g>} />;
+    const Smartphone = (p) => <Icon {...p} path={<g><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></g>} />;
+    const Settings = (p) => <Icon {...p} path={<g><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/><circle cx="12" cy="12" r="3"/></g>} />;
+    const ChevronDown = (p) => <Icon {...p} path={<polyline points="6 9 12 15 18 9"/>} />;
+    const AlertTriangle = (p) => <Icon {...p} path={<g><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></g>} />;
+    const Users = (p) => <Icon {...p} path={<g><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>} />;
+    const Mail = (p) => <Icon {...p} path={<g><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></g>} />;
+    const Building = (p) => <Icon {...p} path={<g><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></g>} />;
+
+    const CATEGORY_GROUPS = [
+      { id: 'general', label: '', items: [{ id: 'all', name: 'すべて', icon: <Folder size={18} /> }] },
+      { id: 'standard', label: '通常対応', items: [
+        { id: 'initial', name: '初期対応', icon: <MessageSquare size={18} /> },
+        { id: 'followup', name: '追撃・検討伺い', icon: <Clock size={18} /> },
+        { id: 'reengage', name: '長期・掘り起こし', icon: <RotateCcw size={18} /> },
+      ]},
+      { id: 'satei', label: '一括査定対応用（Eメール）', items: [
+        { id: 'satei_initial', name: '初期対応（メール）', icon: <MessageSquare size={18} /> },
+        { id: 'satei_followup', name: '追客・追撃（メール）', icon: <Clock size={18} /> },
+        { id: 'satei_reengage', name: '長期・掘り起こし（メール）', icon: <RotateCcw size={18} /> },
+      ]},
+      { id: 'satei_sms', label: '一括査定対応用（SMS）', items: [
+        { id: 'satei_initial_sms', name: '初期対応（SMS）', icon: <Smartphone size={18} /> },
+        { id: 'satei_followup_sms', name: '追客・追撃（SMS）', icon: <Smartphone size={18} /> },
+        { id: 'satei_reengage_sms', name: '長期・掘り起こし（SMS）', icon: <Smartphone size={18} /> },
+      ]},
+      { id: 'agency', label: '業者対応用', items: [
+        { id: 'agency_template', name: '業者個別送信 (Gmail)', icon: <Building size={18} /> }
+      ]}
+    ];
+
+    const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap(group => group.items);
+
+    const INITIAL_TEMPLATES = [
+      {
+        id: 1,
+        title: '資料請求へのお礼（即レス用）',
+        category: 'initial',
+        subject: '【資料送付のご案内】［自社名］ 担当の［担当者名］です',
+        body: `［お客様名］様\n\nお世話になっております。\n［自社名］の［担当者名］でございます。\n\nこの度は、弊社サービスの資料をご請求いただき、\n誠にありがとうございます。\n\n早速ではございますが、資料（PDF）をお送りいたします。\n添付ファイルをご確認いただけますでしょうか。\n\n＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝\n■添付資料\n・会社概要.pdf\n・サービス紹介資料.pdf\n・導入事例集.pdf\n＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝\n\n貴社の課題解決の一助となれば幸いです。\n\nご不明点や、「まずは話を聞いてみたい」というご要望がございましたら、\n本メールへの返信、または下記電話番号までお気軽にご連絡ください。\n\n引き続き何卒よろしくお願い申し上げます.`
+      },
+      {
+        id: 2,
+        title: '日程調整の打診（初回）',
+        category: 'initial',
+        subject: '【お打ち合わせのご相談】［自社名］',
+        body: `［お客様名］様\n\nお世話になっております。\n［自社名］の［担当者名］でございます。\n\n先ほどは資料をご覧いただきありがとうございました。\nもしよろしければ、貴社の現状や課題感に合わせて\nより具体的な事例やデモンストレーションをご紹介できればと考えております。\n\nつきましては、20分～30分ほどオンラインにて\n情報交換のお時間をいただけないでしょうか。\n\n以下の日程でご都合はいかがでしょうか。\n\n■候補日時\n・〇月〇日（曜） 10:00～18:00\n・〇月〇日（曜） 13:00～16:00\n・〇月〇日（曜） 10:00～12:00\n\n上記以外をご希望の場合は、ご都合の良い日時を\nいくつかいただけますと幸いです。\n\nご検討のほど、よろしくお願い申し上げます.`
+      },
+      {
+        id: 3,
+        title: '検討状況の確認（1週間後）',
+        category: 'followup',
+        subject: '先日お送りした資料につきまして【［自社名］】',
+        body: `［お客様名］様\n\nお世話になっております。\n［自社名］の［担当者名］です。\n\n先日お送りいたしました資料はご覧いただけましたでしょうか。\n\nもしご不明な点や、\n「もっとここを詳しく知りたい」といった箇所がございましたら、\n担当の私までお気軽にお申し付けください。\n\nまた、同業他社様での導入事例などをまとめた\n追加資料もご用意が可能でございます。\n\nご興味がございましたら、ぜひ一度情報提供の機会をいただけますと幸いです。\n\nお手すきの際にご返信いただけますと幸いです。\nよろしくお願いいたします.`
+      },
+      {
+        id: 4,
+        title: '音信不通時の再連絡（クッション）',
+        category: 'followup',
+        subject: '【再送】ご検討状況はいかがでしょうか',
+        body: `［お客様名］様\n\nいつも大変お世話になっております。\n［自社名］の［担当者名］です。\n\n度々のご連絡となり大変恐縮でございます。\n\n以前ご提案させていただきました件につきまして、\nその後、ご検討状況はいかがでしょうか。\n\nご多忙中とは存じますが、\n現状について一言だけでもご教示いただけますと幸いです。\n（「時期尚早」「他社に決定」等でも構いません）\n\n何卒よろしくお願い申し上げます.`
+      },
+      {
+        id: 5,
+        title: '半年後の掘り起こし（新機能・事例）',
+        category: 'reengage',
+        subject: '【新機能のご案内】課題解決に役立つ機能が追加されました',
+        body: `［お客様名］様\n\n大変ご無沙汰しております。\n［自社名］の［担当者名］でございます。\n\n以前は弊社サービスをご検討いただき、誠にありがとうございました。\n\nこの度、以前懸念されていた点を解消できる\n「新機能」がリリースされましたので、\n改めてご案内させていただきたくご連絡いたしました。\n\n▼新機能のお知らせ\n（URLや詳細を記載）\n\n現在の状況に合わせて、\n改めてお役に立てるご提案ができるかと存じます。\n\nもしよろしければ、最新の資料をお送りするか、\n一度近況をお伺いできればと考えております。\n\nご興味をお持ちいただけましたら、\n本メールへご返信いただけますと幸いです。\n\n季節の変わり目ですので、ご自愛くださいませ.`
+      },
+      {
+        id: 8,
+        title: '机上査定報告書の送付（Eメール）',
+        category: 'satei_initial',
+        subject: '【机上査定報告書のご送付】［自社名］ 担当：［担当者名］',
+        body: `［お客様名］ 様\n\n突然のご連絡にて失礼いたします。\n［自社名］の［担当者名］と申します。\n\nこの度は、不動産一括査定サイト「［媒体名］」を通じて、 \nご所有不動産の査定をご依頼いただき、誠にありがとうございます。\n\n【査定物件】 ［物件のエリア・種別］\n\n［媒体名］運営のオペレーター様を通じて、 \n「［お客様のご事情1］」\n「［お客様のご事情2］」 \nというご事情を承りました。\n\n机上査定にはなりますが、下記3点の資料データを添付いたしますので、\nご査収いただきますようお願いいたします。\n\n〇査定報告書\n〇調査レポートおよび調査資料\n〇成約事例／近隣販売在庫\n\nお手数をおかけいたしますが、メールをご確認できた場合、\nその旨のご返信をいただきたく存じます。\nデータ添付ですと、迷惑メールに入ってしまっている場合があります。\n\n何卒、よろしくお願いいたします.`
+      },
+      {
+        id: 9,
+        title: 'その後の状況確認／再査定のご案内',
+        category: 'satei_followup',
+        subject: 'ご所有不動産の査定につきまして【［自社名］】',
+        body: `［お客様名］様\n\nお世話になっております。\n［自社名］の［担当者名］です。\n\n先日お送りした査定結果について、その後ご検討状況はいかがでしょうか？\n\nもし状況などに変化がございましたら、現在の最新の相場にて改めて査定し直すことも可能でございます。\nご不明点やご相談などがございましたら、本メールへご返信いただくか、下記までお気軽にご連絡ください。\n\n引き続きよろしくお願い申し上げます.`
+      },
+      {
+        id: 10,
+        title: '査定書（郵送）の到着確認',
+        category: 'satei_followup',
+        subject: '査定書のご郵送につきまして【［自社名］】',
+        body: `［お客様名］様\n\nお世話になっております。\n［自社名］の［担当者名］です。\n\n先日ご郵送にてお送りいたしました査定書ですが、無事にお手元に届いておりますでしょうか？\n\n万が一、まだ届いていないようであれば再送いたしますので、大変お手数ですがその旨をご返信いただけますと助かります。\n\n内容についてのご不明点などもお気軽にお問い合わせください。\n何卒よろしくお願い申し上げます.`
+      },
+      {
+        id: 11,
+        title: '査定書（メール）の到着確認',
+        category: 'satei_followup',
+        subject: '査定書のご送付につきまして【［自社名］】',
+        body: `［お客様名］様\n\nお世話になっております。\n［自社名］の［担当者名］です。\n\n先日メールにてお送りいたしました査定書ですが、無事にご確認いただけましたでしょうか？\n\nデータ添付のため、稀に迷惑メールフォルダに入ってしまっている可能性もございます。\nもし届いていないようであれば再送いたしますので、大変お手数ですがその旨をご返信いただけますと助かります。\n\n何卒よろしくお願い申し上げます.`
+      },
+      {
+        id: 6,
+        title: '【SMS用】所在地不明・電話不通時（携帯から架電）',
+        category: 'satei_initial_sms',
+        subject: '（SMS用のため件名不要）',
+        body: `【［媒体名］：物件査定の件】\n\n［お客様名］様\n\n［自社名］の［担当者名］です。\n\n先ほど、携帯番号［携帯電話番号］よりお電話差し上げました。\nお仕事中でしたでしょうか、失礼いたしました。\n\n［物件のエリア・種別］に関しまして、正確な所在地などの査定に必要なご情報が不足しておりましたので、ご確認させていただきたく存じます。\n\nお手すきの際に、こちらの携帯（またはSMS）へ折り返しいただけますと幸いです。\n\nお電話でのご対応が難しい場合は、その旨をご返信くださいませ。\n\n担当:［担当者名］(［携帯電話番号］)`
+      },
+      {
+        id: 15,
+        title: '【SMS用】所在地不明・電話不通時（事務所から架電）',
+        category: 'satei_initial_sms',
+        subject: '（SMS用のため件名不要）',
+        body: `【［媒体名］：物件査定の件】\n\n［お客様名］様\n\n［自社名］の［担当者名］です。\n\n先ほど、事務所（［事務所電話番号］）よりお電話差し上げました。\nお仕事中でしたでしょうか、失礼いたしました。\n\n［物件のエリア・種別］に関しまして、正確な所在地などの査定に必要なご情報が不足しておりましたので、ご確認させていただきたく存じます。\n\nお手すきの際に、こちらの番号（またはSMS）へ折り返しいただけますと幸いです。\n\nお電話でのご対応が難しい場合は、その旨をご返信くださいませ。\n\n担当:［担当者名］(［事務所電話番号］)`
+      },
+      {
+        id: 12,
+        title: '【SMS用】その後の状況確認／再査定のご案内',
+        category: 'satei_followup_sms',
+        subject: '（SMS用のため件名不要）',
+        body: `【［媒体名］：物件査定の件】\n\n［お客様名］様\n\n［自社名］の［担当者名］です。\n\n先日の査定につきまして、その後いかがでしょうか？状況が変わられていれば、改めて査定し直すことも可能です。ご不明点があればいつでもご連絡ください。\n\n担当:［担当者名］(［携帯電話番号］)`
+      },
+      {
+        id: 13,
+        title: '【SMS用】査定書（郵送）の到着確認',
+        category: 'satei_followup_sms',
+        subject: '（SMS用のため件名不要）',
+        body: `【［媒体名］：物件査定の件】\n\n［お客様名］様\n\n［自社名］の［担当者名］です。\n\n先日ご郵送いたしました査定書は、無事お手元に届いておりますでしょうか？もし届いていないようであれば再送いたしますので、その旨をご返信いただけますと助かります。\n\n担当:［担当者名］(［携帯電話番号］)`
+      },
+      {
+        id: 14,
+        title: '【SMS用】査定書（メール）の到着確認',
+        category: 'satei_followup_sms',
+        subject: '（SMS用のため件名不要）',
+        body: `【［媒体名］：物件査定の件】\n\n［お客様名］様\n\n［自社名］の［担当者名］です。\n\n先日メールにて送信いたしました査定書は、無事にご確認いただけましたでしょうか？もし届いていないようであれば再送いたしますので、その旨をご返信いただけますと助かります。\n\n担当:［担当者名］(［携帯電話番号］)`
+      },
+      {
+        id: 16,
+        title: '【新着物件】物件確認・客付依頼',
+        category: 'agency_template',
+        subject: '【新着物件のご案内】［自社名］',
+        body: `［業者会社名］\n［業者担当者名］ 様\n\nいつもお世話になっております。\n［自社名］の［担当者名］です。\n\n弊社にて新たな専任物件をお預かりいたしました。\n貴社のお客様へご紹介いただきたくご案内申し上げます。\n\n【物件概要】\n・所在地：［物件のエリア・種別］\n・価格：［価格］万円\n\n詳細なマイソクは以下よりダウンロードいただけます。\n［URL］\n\nご不明点がございましたらお気軽にご連絡ください。\n何卒よろしくお願い申し上げます。`
+      }
+    ];
+
+    // --- 業者管理コンポーネント ---
+    function AgencyManager({ agencies, onAdd, onDelete, showNotification }) {
+      const [formData, setFormData] = useState({ company: '', name: '', email: '' });
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!formData.company || !formData.email) return showNotification('会社名とメールアドレスは必須です');
+        onAdd(formData);
+        setFormData({ company: '', name: '', email: '' });
+      };
+      return (
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800"><Plus size={20} className="text-purple-500"/> 新規業者登録</h2>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <input required type="text" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" placeholder="会社名 (必須)" />
+              <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" placeholder="担当者名" />
+              <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" placeholder="メールアドレス (必須)" />
+              <button type="submit" className="bg-purple-600 text-white p-2 rounded hover:bg-purple-700 font-bold shadow-sm transition-colors">クラウドに登録</button>
+            </form>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="bg-gray-50 border-b p-4 font-bold flex justify-between text-gray-700"><span>登録済み業者一覧</span><span className="text-gray-500 text-sm">{agencies.length}件</span></div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 border-b text-gray-500"><tr><th className="p-3">会社名</th><th className="p-3">担当</th><th className="p-3">メール</th><th className="p-3 text-center">削除</th></tr></thead>
+                <tbody>
+                  {agencies.map(a => (
+                    <tr key={a.id} className="border-b hover:bg-gray-50">
+                      <td className="p-3 font-medium text-gray-800">{a.company}</td><td className="p-3 text-gray-600">{a.name}</td><td className="p-3 text-blue-600">{a.email}</td>
+                      <td className="p-3 text-center"><button onClick={() => onDelete(a.id)} className="text-gray-400 hover:text-red-500 p-1 transition-colors"><Trash2 size={16}/></button></td>
+                    </tr>
+                  ))}
+                  {agencies.length === 0 && <tr><td colSpan="4" className="text-center p-10 text-gray-400">業者が登録されていません。<br/>上のフォームから追加してください。</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // --- メインアプリ ---
+    function App() {
+      const [db, setDb] = useState(null);
+      const [user, setUser] = useState(null);
+      const [configInput, setConfigInput] = useState("");
+      const [isConfigured, setIsConfigured] = useState(() => !!localStorage.getItem("firebase_config"));
+      const [appError, setAppError] = useState(null);
+
+      const [templates, setTemplates] = useState([]);
+      const [agencies, setAgencies] = useState([]); // 業者リスト
+      const [settings, setSettings] = useState({ mediaList: ['すまいステップ', 'リビンマッチ'], companyName: '', staffName: '', mobilePhone: '', officePhone: '' });
+      const [activeCategory, setActiveCategory] = useState('satei_initial');
+      const [currentView, setCurrentView] = useState('templates'); // 'templates' | 'agencies'
+      const [searchQuery, setSearchQuery] = useState('');
+      const [editingTemplate, setEditingTemplate] = useState(null);
+      const [notification, setNotification] = useState(null);
+      const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+      const [copyModal, setCopyModal] = useState(null);
+      const [modalInputs, setModalInputs] = useState({});
+      const [newMediaInput, setNewMediaInput] = useState('');
+
+      const appId = "mail-template-app";
+
+      useEffect(() => {
+        const savedConfig = localStorage.getItem("firebase_config");
+        if (savedConfig) {
+          try {
+            const config = JSON.parse(savedConfig);
+            if (!firebase.apps.length) firebase.initializeApp(config);
+            const app = firebase.app();
+            const _auth = app.auth();
+            const _db = app.firestore();
+            
+            setDb(_db);
+            
+            _auth.signInAnonymously().catch(e => {
+                let errorMsg = "【ログインエラー】\n" + e.message;
+                if (e.message.includes("unauthorized-domain") || e.code === "auth/unauthorized-domain") {
+                    errorMsg += "\n\n💡原因: GitHub Pagesのドメインが許可されていません。\nFirebaseコンソールの「Authentication」>「設定」>「承認済みドメイン」に krnd6n9chk-ai.github.io を追加してください。";
+                }
+                setAppError(errorMsg);
+            });
+
+            return _auth.onAuthStateChanged((u) => setUser(u));
+            
+          } catch (e) {
+            console.error("Firebase init error:", e);
+            localStorage.removeItem("firebase_config");
+            setIsConfigured(false);
+          }
+        }
+      }, [isConfigured]);
+
+      useEffect(() => {
+        if (!db || !user) return;
+        
+        const templatesRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates');
+        const unsubT = templatesRef.onSnapshot((snapshot) => {
+          setTemplates(snapshot.docs.map(d => ({id: d.id, ...d.data()})));
+        }, (error) => {
+          setAppError("【データベース読込エラー】\n" + error.message);
+        });
+
+        // 業者リストのリスナー
+        const agenciesRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies');
+        const unsubA = agenciesRef.onSnapshot((snapshot) => {
+          setAgencies(snapshot.docs.map(d => ({id: d.id, ...d.data()})));
+        });
+
+        const sRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('global');
+        const unsubS = sRef.onSnapshot(doc => {
+            if (doc.exists) {
+                setSettings(doc.data());
+            } else {
+                sRef.set({ mediaList: ['すまいステップ', 'リビンマッチ'], companyName: '', staffName: '', mobilePhone: '', officePhone: '' }).catch(e => console.error(e));
+            }
+        });
+
+        return () => { unsubT(); unsubA(); unsubS(); };
+      }, [db, user]);
+
+      const handleConfigSubmit = () => {
+        try {
+          let apiKey = configInput.match(/apiKey["'\s:=]+([^"',\s}]+)/i);
+          let authDomain = configInput.match(/authDomain["'\s:=]+([^"',\s}]+)/i);
+          let projectId = configInput.match(/projectId["'\s:=]+([^"',\s}]+)/i);
+          let storageBucket = configInput.match(/storageBucket["'\s:=]+([^"',\s}]+)/i);
+          let messagingSenderId = configInput.match(/messagingSenderId["'\s:=]+([^"',\s}]+)/i);
+          let appIdValue = configInput.match(/appId["'\s:=]+([^"',\s}]+)/i);
+
+          if (!apiKey || !projectId || !appIdValue) throw new Error("必要な項目が見つかりません。");
+          if (!apiKey[1].startsWith("AIza")) throw new Error("APIキーの形式が間違っています。");
+
+          const extractedConfig = { apiKey: apiKey[1], authDomain: authDomain ? authDomain[1] : "", projectId: projectId[1], storageBucket: storageBucket ? storageBucket[1] : "", messagingSenderId: messagingSenderId ? messagingSenderId[1] : "", appId: appIdValue[1] };
+          localStorage.setItem("firebase_config", JSON.stringify(extractedConfig));
+          setIsConfigured(true);
+        } catch (e) {
+          alert("【設定エラー】\n" + e.message);
+        }
+      };
+
+      const saveToCloud = async (t) => {
+        if (!db || !user) return alert("クラウドに接続できていません。再読み込みしてください。");
+        const id = t.id || crypto.randomUUID();
+        await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates').doc(id.toString()).set({ ...t, id }).catch(e => setAppError("保存エラー: " + e.message));
+        setEditingTemplate(null);
+        showNotification("保存しました");
+      };
+
+      const deleteFromCloud = async (id) => {
+        if (!window.confirm("削除しますか？")) return;
+        await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates').doc(id.toString()).delete();
+      };
+
+      // 業者の保存と削除
+      const saveAgencyToCloud = async (agency) => {
+        if (!db || !user) return;
+        const id = agency.id || crypto.randomUUID();
+        await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).set({ ...agency, id });
+        showNotification("業者を追加しました");
+      };
+      const deleteAgencyFromCloud = async (id) => {
+        if (!window.confirm("削除しますか？")) return;
+        await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).delete();
+      };
+
+      const updateSettings = async (s) => {
+        setSettings(s);
+        if (db && user) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('global').set(s);
+      };
+
+      const showNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
+
+      const executeCopy = (text, label) => {
+        const ta = document.createElement("textarea");
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        showNotification(`${label}をコピーしました`);
+      };
+
+      const handleCopyRequest = (text, label) => {
+        const matches = text.match(/［.+?］/g);
+        // 業者用の特殊プレースホルダーは手動入力から除外（自動置換するため）
+        const filteredMatches = matches ? matches.filter(m => m !== '［業者会社名］' && m !== '［業者担当者名］') : null;
+        
+        if (filteredMatches && filteredMatches.length > 0) {
+          const unique = [...new Set(filteredMatches)];
+          setModalInputs(Object.fromEntries(unique.map(ph => [ph, ''])));
+          setCopyModal({ text, label, placeholders: unique });
+        } else {
+          executeCopy(text, label);
+        }
+      };
+
+      // Gmail起動処理
+      const handleSendToAgency = (template, agency) => {
+        // 先方情報の自動差し込み
+        let body = template.body.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || 'ご担当者');
+        let subject = template.subject.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || 'ご担当者');
+        
+        // Gmail Web版のURLを生成して開く
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(agency.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.open(gmailUrl, '_blank');
+        showNotification(`${agency.company} 宛のGmailを開きました`);
+      };
+
+      if (!isConfigured) {
+        return (
+          <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6">
+            <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-2xl">
+              <h2 className="text-2xl font-bold mb-4">Firebaseの設定</h2>
+              <textarea className="w-full h-48 p-4 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs mb-4 focus:ring-2 focus:ring-orange-500 outline-none" placeholder="const firebaseConfig = { ... }; の塊をコピーして貼り付け" value={configInput} onChange={e => setConfigInput(e.target.value)} />
+              <button onClick={handleConfigSubmit} className="w-full bg-orange-600 py-3 rounded-lg font-bold">設定を保存して開始</button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-[100dvh] bg-gray-50 flex flex-col md:flex-row relative">
+          {appError && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+              <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full">
+                <h3 className="text-red-600 font-bold text-xl mb-4 flex items-center gap-2"><AlertTriangle size={24} /> 通信エラーが発生しました</h3>
+                <pre className="bg-red-50 text-red-800 p-4 rounded text-sm whitespace-pre-wrap font-mono mb-4 border border-red-200">{appError}</pre>
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => { localStorage.removeItem("firebase_config"); window.location.reload(); }} className="px-4 py-2 border rounded">設定をやり直す</button>
+                  <button onClick={() => setAppError(null)} className="px-5 py-2 bg-slate-800 text-white rounded">閉じる</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />}
+          
+          <aside className={`fixed pt-safe inset-y-0 left-0 z-50 w-72 bg-slate-800 text-white flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 md:w-64 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="p-6 mt-safe flex justify-between items-center">
+              <h1 className="text-xl font-bold flex items-center gap-2 text-orange-400"><Send size={24} /> Mail Cloud</h1>
+              <button className="md:hidden" onClick={() => setIsMobileMenuOpen(false)}><X size={24} /></button>
+            </div>
+            <nav className="px-2 pb-4 overflow-y-auto flex-1 custom-scrollbar">
+              {CATEGORY_GROUPS.map(group => (
+                <div key={group.id} className="mb-6">
+                  {group.label && <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-2 px-4">{group.label}</h3>}
+                  <div className="space-y-1">
+                    {group.items.map(cat => (
+                      <button key={cat.id} onClick={() => { setCurrentView('templates'); setActiveCategory(cat.id); setEditingTemplate(null); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors ${currentView === 'templates' && activeCategory === cat.id ? 'bg-orange-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>
+                        {cat.icon}{cat.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              
+              {/* 業者メニュー追加 */}
+              <div className="mt-4 border-t border-slate-700 pt-4 px-2">
+                <button onClick={() => { setCurrentView('agencies'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-colors ${currentView === 'agencies' ? 'bg-purple-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>
+                  <Users size={18} className={currentView === 'agencies' ? "text-white" : "text-purple-400"} /> 🏢 業者アドレス帳
+                </button>
+              </div>
+            </nav>
+            <div className="p-4 border-t border-slate-700 pb-safe">
+              <button onClick={() => { setCurrentView('templates'); setEditingTemplate({ title: '', category: activeCategory==='all'?'satei_initial':activeCategory, subject: '', body: '' }); setIsMobileMenuOpen(false); }} className="w-full bg-emerald-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-bold"><Plus size={18} /> 新規作成</button>
+            </div>
+          </aside>
+
+          <main className="flex-1 h-[100dvh] overflow-hidden flex flex-col relative pt-safe">
+            <header className="bg-white border-b p-4 shadow-sm z-10 sticky top-0">
+              <div className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <button className="md:hidden p-2 text-gray-600" onClick={() => setIsMobileMenuOpen(true)}><Menu size={24} /></button>
+                  <h2 className="text-lg font-bold text-gray-800">
+                    {currentView === 'agencies' ? '🏢 業者アドレス帳' : (ALL_CATEGORIES.find(c => c.id === activeCategory)?.name || 'すべて')}
+                  </h2>
+                </div>
+                {currentView === 'templates' && (
+                  <div className="relative w-full sm:w-80">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input type="text" placeholder="検索..." className="w-full pl-10 pr-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-orange-500" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                  </div>
+                )}
+              </div>
+            </header>
+
+            <div className="flex-1 overflow-y-auto bg-gray-50 pb-safe px-4 md:px-6 py-4">
+              {currentView === 'agencies' ? (
+                <AgencyManager agencies={agencies} onAdd={saveAgencyToCloud} onDelete={deleteAgencyFromCloud} showNotification={showNotification} />
+              ) : (
+                <>
+                  {!editingTemplate && (
+                    <div className="bg-white border rounded-xl shadow-sm mb-6 p-4 max-w-5xl mx-auto">
+                      <details className="group">
+                        <summary className="cursor-pointer font-bold text-gray-700 flex items-center justify-between outline-none">
+                          <span className="flex items-center gap-2"><Settings size={18} className="text-orange-500" /> 基本設定（全デバイス同期）</span>
+                          <ChevronDown className="group-open:rotate-180 transition-transform text-gray-400" size={18} />
+                        </summary>
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-2">
+                          {[['自社名', 'companyName'], ['担当者名', 'staffName'], ['携帯', 'mobilePhone'], ['事務所', 'officePhone']].map(([label, key]) => (
+                            <div key={key}>
+                              <label className="block text-[10px] font-bold text-gray-400 mb-1">{label}</label>
+                              <input type="text" value={settings[key]} onChange={e => updateSettings({...settings, [key]: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-orange-500" />
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </div>
+                  )}
+
+                  <div className="max-w-5xl mx-auto">
+                    {editingTemplate ? (
+                      <Editor template={editingTemplate} onSave={saveToCloud} onCancel={() => setEditingTemplate(null)} categories={CATEGORY_GROUPS} />
+                    ) : (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
+                        {templates.filter(t => (activeCategory === 'all' || t.category === activeCategory) && (t.title.includes(searchQuery)||t.body.includes(searchQuery))).map(t => (
+                          <TemplateCard 
+                            key={t.id} 
+                            template={{...t, subject: t.subject.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone), body: t.body.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone)}} 
+                            originalTemplate={t} 
+                            agencies={agencies}
+                            onSendToAgency={handleSendToAgency}
+                            onCopy={handleCopyRequest} 
+                            onEdit={setEditingTemplate} 
+                            onDelete={deleteFromCloud} 
+                            getCategoryName={id => ALL_CATEGORIES.find(c => c.id === id)?.name} 
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {notification && <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-fade-in-up z-50"><Check size={16} className="text-green-400" />{notification}</div>}
+
+            {copyModal && (
+              <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up">
+                <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 flex flex-col max-h-[90vh]">
+                  <h3 className="text-lg font-bold mb-4">未入力項目の設定</h3>
+                  <div className="overflow-y-auto flex-1 space-y-4 pr-2 mb-4">
+                    {copyModal.placeholders.map((ph, idx) => (
+                      <div key={idx} className="bg-gray-50 p-4 rounded-lg border">
+                        <label className="block text-xs font-bold text-gray-500 mb-2">{ph}</label>
+                        {ph === '［媒体名］' ? (
+                          <div>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {settings.mediaList.map((m, i) => (
+                                <button key={i} onClick={() => setModalInputs({...modalInputs, [ph]: m})} className={`px-3 py-2 text-sm font-bold rounded-lg border ${modalInputs[ph]===m?'bg-orange-600 text-white border-orange-600 shadow-md':'bg-white text-orange-600 border-orange-200'}`}>{m}</button>
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <input type="text" value={newMediaInput} onChange={e => setNewMediaInput(e.target.value)} className="flex-1 p-2 border rounded text-sm outline-none" placeholder="新しい媒体を追加" />
+                              <button onClick={() => { if(!newMediaInput) return; updateSettings({...settings, mediaList: [...settings.mediaList, newMediaInput]}); setNewMediaInput(''); }} className="px-4 py-2 bg-slate-800 text-white rounded text-xs font-bold">追加</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <input type="text" value={modalInputs[ph]} onChange={e => setModalInputs({...modalInputs, [ph]: e.target.value})} className="w-full p-2 border rounded outline-none text-sm focus:ring-1 focus:ring-orange-500" placeholder="内容を入力してください" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <button onClick={() => setCopyModal(null)} className="px-5 py-2 text-gray-400 font-bold">中止</button>
+                    <button onClick={() => {
+                      let res = copyModal.text;
+                      copyModal.placeholders.forEach(ph => { res = res.split(ph).join(modalInputs[ph] || ph); });
+                      executeCopy(res, copyModal.label); setCopyModal(null);
+                    }} className="px-6 py-2 bg-orange-600 text-white rounded shadow-md flex items-center gap-2 font-bold"><Copy size={16} /> コピー実行</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    function TemplateCard({ template, originalTemplate, agencies, onSendToAgency, onCopy, onEdit, onDelete, getCategoryName }) {
+      const [isSendMode, setIsSendMode] = useState(false);
+
+      return (
+        <div className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow flex flex-col h-full overflow-hidden">
+          <div className="p-4 border-b bg-gray-50/50 flex justify-between items-start">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${template.category === 'agency_template' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>
+                  {getCategoryName(template.category)}
+                </span>
+                {/* 業者用テンプレートの場合のみ Gmail送信パネルボタンを表示 */}
+                {template.category === 'agency_template' && (
+                  <button onClick={() => setIsSendMode(!isSendMode)} className="text-white text-[10px] font-bold flex items-center gap-1 bg-purple-600 px-2 py-0.5 rounded shadow-sm hover:bg-purple-700 transition-colors">
+                    <Mail size={10} /> Gmail送信パネル
+                  </button>
+                )}
+              </div>
+              <h3 className="font-bold text-gray-800 leading-tight">{template.title}</h3>
+            </div>
+            <div className="flex gap-1"><button onClick={() => onEdit(originalTemplate)} className="p-2 text-gray-400 hover:text-blue-600"><Edit2 size={18} /></button><button onClick={() => onDelete(template.id)} className="p-2 text-gray-400 hover:text-red-600"><Trash2 size={18} /></button></div>
+          </div>
+
+          {/* 個別送信用の展開パネル */}
+          {isSendMode && template.category === 'agency_template' && (
+            <div className="bg-purple-50 p-3 border-b border-purple-100">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-xs font-bold text-purple-800 flex items-center gap-1"><Mail size={12}/> 送信先の業者を選択</h4>
+                <button onClick={() => setIsSendMode(false)} className="text-purple-400 hover:text-purple-700"><X size={16} /></button>
+              </div>
+              {agencies.length === 0 ? (
+                <p className="text-xs text-gray-500 py-2">※左メニューから「業者アドレス帳」を登録してください。</p>
+              ) : (
+                <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                  {agencies.map(a => (
+                    <button key={a.id} onClick={() => onSendToAgency(template, a)} className="w-full text-left bg-white border border-purple-100 hover:border-purple-300 p-2 rounded flex justify-between items-center transition-colors group">
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="text-xs font-bold text-gray-700 truncate">{a.company}</span>
+                        <span className="text-[10px] text-gray-500 truncate">{a.name || '担当者名なし'}</span>
+                      </div>
+                      <span className="text-[10px] bg-purple-600 text-white px-2 py-1 rounded shadow-sm opacity-90 group-hover:opacity-100 whitespace-nowrap flex items-center gap-1">
+                        <Send size={10} /> Gmail起動
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="p-4 flex-1 space-y-4">
+            <div><div className="text-[10px] font-bold text-gray-400 mb-1 flex justify-between">件名<button onClick={() => onCopy(template.subject, '件名')} className="text-orange-600 font-bold flex items-center gap-1"><Copy size={10} />コピー</button></div><div className="bg-gray-50 p-2 rounded border text-sm text-gray-700 font-medium break-all">{template.subject || '(件名なし)'}</div></div>
+            <div><div className="text-[10px] font-bold text-gray-400 mb-1 flex justify-between">本文<button onClick={() => onCopy(template.body, '本文')} className="text-orange-600 font-bold flex items-center gap-1"><Copy size={10} />コピー</button></div><div className="bg-gray-50 p-3 rounded border text-sm text-gray-600 font-mono whitespace-pre-wrap h-40 overflow-y-auto custom-scrollbar">{template.body}</div></div>
+          </div>
+        </div>
+      );
+    }
+
+    function Editor({ template, onSave, onCancel, categories }) {
+      const [formData, setFormData] = useState({ ...template });
+      const bodyRef = useRef(null);
+      const insert = ph => {
+        const start = bodyRef.current.selectionStart;
+        const end = bodyRef.current.selectionEnd;
+        const body = formData.body || '';
+        setFormData({...formData, body: body.substring(0, start) + ph + body.substring(end)});
+        setTimeout(() => { bodyRef.current.selectionStart = bodyRef.current.selectionEnd = start + ph.length; bodyRef.current.focus(); }, 0);
+      };
+
+      return (
+        <div className="bg-white rounded-xl shadow-lg border overflow-hidden animate-fade-in-up">
+          <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center"><h3 className="font-bold">{template.id?'編集':'新規作成'}</h3><button onClick={onCancel}><X size={24} /></button></div>
+          <form onSubmit={e => { e.preventDefault(); onSave(formData); }} className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div><label className="block text-xs font-bold text-gray-400 mb-1">タイトル</label><input type="text" className="w-full p-2 border rounded font-bold" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required /></div>
+              <div><label className="block text-xs font-bold text-gray-400 mb-1">カテゴリ</label><select className="w-full p-2 border rounded bg-white font-bold" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>{categories.map(g => g.id!=='general'&&<optgroup key={g.id} label={g.label}>{g.items.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>)}</select></div>
+            </div>
+            <div><label className="block text-xs font-bold text-gray-400 mb-1">件名</label><input type="text" className="w-full p-2 border rounded font-bold" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} /></div>
+            <div>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {/* 業者用のキーワードボタンを追加 */}
+                {['［お客様名］', '［媒体名］', '［物件のエリア・種別］', '［自社名］', '［担当者名］', '［業者会社名］', '［業者担当者名］'].map(ph => (
+                  <button key={ph} type="button" onClick={() => insert(ph)} className={`text-[10px] bg-white border px-2 py-1 rounded shadow-sm font-bold ${ph.includes('業者') ? 'text-purple-600 border-purple-200' : 'text-blue-600 border-blue-200'}`}>{ph}</button>
+                ))}
+              </div>
+              <textarea ref={bodyRef} className="w-full h-64 p-3 border rounded font-mono text-sm outline-none focus:ring-2 focus:ring-orange-500 custom-scrollbar" value={formData.body} onChange={e => setFormData({...formData, body: e.target.value})} required /></div>
+            <div className="flex justify-end gap-3"><button type="button" onClick={onCancel} className="px-5 py-2 text-gray-500 font-bold">中止</button><button type="submit" className="px-8 py-2 bg-orange-600 text-white rounded shadow-md font-bold">保存してクラウド同期</button></div>
+          </form>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

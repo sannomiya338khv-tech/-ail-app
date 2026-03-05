@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>メールテンプレート管理 (Cloud)</title>
+  
+  <!-- iPhoneアプリ化（PWA）用の設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Mail Cloud">
@@ -14,10 +16,8 @@
       var c = document.createElement('canvas');
       c.width = 256; c.height = 256;
       var ctx = c.getContext('2d');
-      // 背景をオレンジに
       ctx.fillStyle = '#ea580c';
       ctx.fillRect(0,0,256,256);
-      // 白いメールの線を描画
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 16;
       ctx.lineJoin = 'round';
@@ -682,7 +682,7 @@
             <div><label className="block text-xs font-bold text-gray-400 mb-1">件名</label><input type="text" className="w-full p-2 border rounded font-bold" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} /></div>
             <div>
               <div className="flex flex-wrap gap-2 mb-2">
-                {/* 業者用のキーワードボタンを追加 */}
+                {/* 業者用のキーワードボタンをはじめ、全種類のキーワードボタンを完備 */}
                 {['［お客様名］', '［媒体名］', '［物件のエリア・種別］', '［自社名］', '［担当者名］', '［携帯電話番号］', '［事務所電話番号］', '［業者会社名］', '［業者担当者名］'].map(ph => (
                   <button key={ph} type="button" onClick={() => insert(ph)} className={`text-[10px] bg-white border px-2 py-1 rounded shadow-sm font-bold ${ph.includes('業者') ? 'text-purple-600 border-purple-200' : 'text-blue-600 border-blue-200'}`}>{ph}</button>
                 ))}

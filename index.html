@@ -228,7 +228,7 @@
     ];
 
     // --- 業者管理コンポーネント (グループ機能追加版) ---
-    function AgencyManager({ agencies, onAdd, onDelete, showNotification }) {
+    function AgencyManager({ agencies, onAdd, onDelete, onUpdate, showNotification }) {
       // 登録フォームの状態に group を追加（初期値は「一般」）
       const [formData, setFormData] = useState({ company: '', name: '', email: '', group: '一般' });
       
@@ -237,6 +237,10 @@
         if (!formData.company || !formData.email) return showNotification('会社名とメールアドレスは必須です');
         onAdd(formData);
         setFormData({ company: '', name: '', email: '', group: '一般' });
+      };
+
+      const handleGroupChange = (id, newGroup) => {
+        onUpdate(id, { group: newGroup });
       };
 
       return (
@@ -285,8 +289,16 @@
                 <tbody>
                   {agencies.map(a => (
                     <tr key={a.id} className="border-b hover:bg-gray-50">
-                      {/* 既存データ（groupが無いもの）は「一般」として表示 */}
-                      <td className="p-3"><span className="text-[10px] bg-gray-200 text-gray-700 px-2 py-1 rounded whitespace-nowrap font-bold">{a.group || '一般'}</span></td>
+                      {/* グループ変更用のプルダウン */}
+                      <td className="p-3">
+                        <select 
+                          value={a.group || '一般'} 
+                          onChange={(e) => handleGroupChange(a.id, e.target.value)}
+                          className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-1 py-1 rounded font-bold border border-gray-200 outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                        >
+                          {AGENCY_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </td>
                       <td className="p-3 font-medium text-gray-800">{a.company}</td>
                       <td className="p-3 text-gray-600">{a.name}</td>
                       <td className="p-3 text-blue-600">{a.email}</td>
@@ -427,6 +439,12 @@
         await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).delete();
       };
 
+      const updateAgencyInCloud = async (id, updatedData) => {
+        if (!db || !user) return;
+        await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).update(updatedData);
+        showNotification("グループを変更しました");
+      };
+
       const updateSettings = async (s) => {
         setSettings(s);
         if (db && user) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('global').set(s);
@@ -541,7 +559,7 @@
 
             <div className="flex-1 overflow-y-auto bg-gray-50 pb-safe px-4 md:px-6 py-4">
               {currentView === 'agencies' ? (
-                <AgencyManager agencies={agencies} onAdd={saveAgencyToCloud} onDelete={deleteAgencyFromCloud} showNotification={showNotification} />
+                <AgencyManager agencies={agencies} onAdd={saveAgencyToCloud} onDelete={deleteAgencyFromCloud} onUpdate={updateAgencyInCloud} showNotification={showNotification} />
               ) : (
                 <>
                   {!editingTemplate && (

@@ -92,6 +92,9 @@
     const Mail = (p) => <Icon {...p} path={<g><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></g>} />;
     const Building = (p) => <Icon {...p} path={<g><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></g>} />;
 
+    // 業者のグループ定義を追加
+    const AGENCY_GROUPS = ['一般', 'マンション買取', '戸建買取', '土地買取', 'その他'];
+
     const CATEGORY_GROUPS = [
       { id: 'general', label: '', items: [{ id: 'all', name: 'すべて', icon: <Folder size={18} /> }] },
       { id: 'standard', label: '通常対応', items: [
@@ -224,39 +227,73 @@
       }
     ];
 
-    // --- 業者管理コンポーネント ---
+    // --- 業者管理コンポーネント (グループ機能追加版) ---
     function AgencyManager({ agencies, onAdd, onDelete, showNotification }) {
-      const [formData, setFormData] = useState({ company: '', name: '', email: '' });
+      // 登録フォームの状態に group を追加（初期値は「一般」）
+      const [formData, setFormData] = useState({ company: '', name: '', email: '', group: '一般' });
+      
       const handleSubmit = (e) => {
         e.preventDefault();
         if (!formData.company || !formData.email) return showNotification('会社名とメールアドレスは必須です');
         onAdd(formData);
-        setFormData({ company: '', name: '', email: '' });
+        setFormData({ company: '', name: '', email: '', group: '一般' });
       };
+
       return (
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800"><Plus size={20} className="text-purple-500"/> 新規業者登録</h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <input required type="text" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" placeholder="会社名 (必須)" />
-              <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" placeholder="担当者名" />
-              <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" placeholder="メールアドレス (必須)" />
-              <button type="submit" className="bg-purple-600 text-white p-2 rounded hover:bg-purple-700 font-bold shadow-sm transition-colors">クラウドに登録</button>
+            
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              {/* グループ選択プルダウン */}
+              <div className="sm:col-span-2">
+                <label className="block text-[10px] font-bold text-gray-500 mb-1">グループ</label>
+                <select value={formData.group} onChange={e => setFormData({...formData, group: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500 bg-white">
+                  {AGENCY_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div className="sm:col-span-3">
+                <label className="block text-[10px] font-bold text-gray-500 mb-1">会社名 (必須)</label>
+                <input required type="text" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" placeholder="株式会社〇〇" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-[10px] font-bold text-gray-500 mb-1">担当者名</label>
+                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" placeholder="山田" />
+              </div>
+              <div className="sm:col-span-3">
+                <label className="block text-[10px] font-bold text-gray-500 mb-1">メールアドレス (必須)</label>
+                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" placeholder="info@example.com" />
+              </div>
+              <div className="sm:col-span-2 flex items-end">
+                <button type="submit" className="w-full bg-purple-600 text-white p-2 rounded hover:bg-purple-700 font-bold shadow-sm transition-colors">登録する</button>
+              </div>
             </form>
           </div>
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="bg-gray-50 border-b p-4 font-bold flex justify-between text-gray-700"><span>登録済み業者一覧</span><span className="text-gray-500 text-sm">{agencies.length}件</span></div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 border-b text-gray-500"><tr><th className="p-3">会社名</th><th className="p-3">担当</th><th className="p-3">メール</th><th className="p-3 text-center">削除</th></tr></thead>
+                <thead className="bg-gray-50 border-b text-gray-500">
+                  <tr>
+                    <th className="p-3 w-28">グループ</th>
+                    <th className="p-3">会社名</th>
+                    <th className="p-3">担当</th>
+                    <th className="p-3">メール</th>
+                    <th className="p-3 text-center">削除</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {agencies.map(a => (
                     <tr key={a.id} className="border-b hover:bg-gray-50">
-                      <td className="p-3 font-medium text-gray-800">{a.company}</td><td className="p-3 text-gray-600">{a.name}</td><td className="p-3 text-blue-600">{a.email}</td>
+                      {/* 既存データ（groupが無いもの）は「一般」として表示 */}
+                      <td className="p-3"><span className="text-[10px] bg-gray-200 text-gray-700 px-2 py-1 rounded whitespace-nowrap font-bold">{a.group || '一般'}</span></td>
+                      <td className="p-3 font-medium text-gray-800">{a.company}</td>
+                      <td className="p-3 text-gray-600">{a.name}</td>
+                      <td className="p-3 text-blue-600">{a.email}</td>
                       <td className="p-3 text-center"><button onClick={() => onDelete(a.id)} className="text-gray-400 hover:text-red-500 p-1 transition-colors"><Trash2 size={16}/></button></td>
                     </tr>
                   ))}
-                  {agencies.length === 0 && <tr><td colSpan="4" className="text-center p-10 text-gray-400">業者が登録されていません。<br/>上のフォームから追加してください。</td></tr>}
+                  {agencies.length === 0 && <tr><td colSpan="5" className="text-center p-10 text-gray-400">業者が登録されていません。<br/>上のフォームから追加してください。</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -274,10 +311,10 @@
       const [appError, setAppError] = useState(null);
 
       const [templates, setTemplates] = useState([]);
-      const [agencies, setAgencies] = useState([]); // 業者リスト
+      const [agencies, setAgencies] = useState([]); 
       const [settings, setSettings] = useState({ mediaList: ['すまいステップ', 'リビンマッチ'], companyName: '', staffName: '', mobilePhone: '', officePhone: '' });
       const [activeCategory, setActiveCategory] = useState('satei_initial');
-      const [currentView, setCurrentView] = useState('templates'); // 'templates' | 'agencies'
+      const [currentView, setCurrentView] = useState('templates');
       const [searchQuery, setSearchQuery] = useState('');
       const [editingTemplate, setEditingTemplate] = useState(null);
       const [notification, setNotification] = useState(null);
@@ -328,7 +365,6 @@
           setAppError("【データベース読込エラー】\n" + error.message);
         });
 
-        // 業者リストのリスナー
         const agenciesRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies');
         const unsubA = agenciesRef.onSnapshot((snapshot) => {
           setAgencies(snapshot.docs.map(d => ({id: d.id, ...d.data()})));
@@ -379,13 +415,13 @@
         await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('templates').doc(id.toString()).delete();
       };
 
-      // 業者の保存と削除
       const saveAgencyToCloud = async (agency) => {
         if (!db || !user) return;
         const id = agency.id || crypto.randomUUID();
         await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).set({ ...agency, id });
         showNotification("業者を追加しました");
       };
+      
       const deleteAgencyFromCloud = async (id) => {
         if (!window.confirm("削除しますか？")) return;
         await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).delete();
@@ -407,7 +443,6 @@
 
       const handleCopyRequest = (text, label) => {
         const matches = text.match(/［.+?］/g);
-        // 業者用の特殊プレースホルダーは手動入力から除外（自動置換するため）
         const filteredMatches = matches ? matches.filter(m => m !== '［業者会社名］' && m !== '［業者担当者名］') : null;
         
         if (filteredMatches && filteredMatches.length > 0) {
@@ -419,13 +454,9 @@
         }
       };
 
-      // Gmail起動処理
       const handleSendToAgency = (template, agency) => {
-        // 先方情報の自動差し込み
         let body = template.body.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || 'ご担当者');
         let subject = template.subject.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || 'ご担当者');
-        
-        // Gmail Web版のURLを生成して開く
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(agency.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         window.open(gmailUrl, '_blank');
         showNotification(`${agency.company} 宛のGmailを開きました`);
@@ -479,7 +510,6 @@
                 </div>
               ))}
               
-              {/* 業者メニュー追加 */}
               <div className="mt-4 border-t border-slate-700 pt-4 px-2">
                 <button onClick={() => { setCurrentView('agencies'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-colors ${currentView === 'agencies' ? 'bg-purple-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>
                   <Users size={18} className={currentView === 'agencies' ? "text-white" : "text-purple-400"} /> 🏢 業者アドレス帳
@@ -602,8 +632,16 @@
       );
     }
 
+    // --- テンプレートカード (アコーディオン展開版) ---
     function TemplateCard({ template, originalTemplate, agencies, onSendToAgency, onCopy, onEdit, onDelete, getCategoryName }) {
       const [isSendMode, setIsSendMode] = useState(false);
+      const [expandedGroup, setExpandedGroup] = useState(null); // 開いているグループを記憶
+
+      // 業者をグループごとに分類（登録されている業者がいるグループのみ表示）
+      const groupedAgencies = AGENCY_GROUPS.map(groupName => ({
+        name: groupName,
+        agencies: agencies.filter(a => (a.group || '一般') === groupName)
+      })).filter(g => g.agencies.length > 0);
 
       return (
         <div className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow flex flex-col h-full overflow-hidden">
@@ -613,7 +651,6 @@
                 <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${template.category === 'agency_template' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>
                   {getCategoryName(template.category)}
                 </span>
-                {/* 業者用テンプレートの場合のみ Gmail送信パネルボタンを表示 */}
                 {template.category === 'agency_template' && (
                   <button onClick={() => setIsSendMode(!isSendMode)} className="text-white text-[10px] font-bold flex items-center gap-1 bg-purple-600 px-2 py-0.5 rounded shadow-sm hover:bg-purple-700 transition-colors">
                     <Mail size={10} /> Gmail送信パネル
@@ -625,7 +662,7 @@
             <div className="flex gap-1"><button onClick={() => onEdit(originalTemplate)} className="p-2 text-gray-400 hover:text-blue-600"><Edit2 size={18} /></button><button onClick={() => onDelete(template.id)} className="p-2 text-gray-400 hover:text-red-600"><Trash2 size={18} /></button></div>
           </div>
 
-          {/* 個別送信用の展開パネル */}
+          {/* 個別送信用の展開パネル (グループ別アコーディオン) */}
           {isSendMode && template.category === 'agency_template' && (
             <div className="bg-purple-50 p-3 border-b border-purple-100">
               <div className="flex justify-between items-center mb-2">
@@ -635,17 +672,37 @@
               {agencies.length === 0 ? (
                 <p className="text-xs text-gray-500 py-2">※左メニューから「業者アドレス帳」を登録してください。</p>
               ) : (
-                <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar pr-1">
-                  {agencies.map(a => (
-                    <button key={a.id} onClick={() => onSendToAgency(template, a)} className="w-full text-left bg-white border border-purple-100 hover:border-purple-300 p-2 rounded flex justify-between items-center transition-colors group">
-                      <div className="flex flex-col overflow-hidden">
-                        <span className="text-xs font-bold text-gray-700 truncate">{a.company}</span>
-                        <span className="text-[10px] text-gray-500 truncate">{a.name || '担当者名なし'}</span>
-                      </div>
-                      <span className="text-[10px] bg-purple-600 text-white px-2 py-1 rounded shadow-sm opacity-90 group-hover:opacity-100 whitespace-nowrap flex items-center gap-1">
-                        <Send size={10} /> Gmail起動
-                      </span>
-                    </button>
+                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1 pb-1">
+                  {groupedAgencies.map(group => (
+                    <div key={group.name} className="border border-purple-200 rounded bg-white overflow-hidden shadow-sm">
+                      {/* グループのヘッダーボタン */}
+                      <button 
+                        onClick={() => setExpandedGroup(expandedGroup === group.name ? null : group.name)}
+                        className="w-full flex justify-between items-center p-2.5 bg-purple-50 hover:bg-purple-100 transition-colors"
+                      >
+                        <span className="text-xs font-bold text-purple-800">
+                          {group.name} <span className="text-gray-500 font-normal ml-1">({group.agencies.length}件)</span>
+                        </span>
+                        <ChevronDown size={14} className={`text-purple-500 transition-transform ${expandedGroup === group.name ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {/* 展開される業者リスト */}
+                      {expandedGroup === group.name && (
+                        <div className="p-1.5 space-y-1.5 bg-white border-t border-purple-100">
+                          {group.agencies.map(a => (
+                            <button key={a.id} onClick={() => onSendToAgency(template, a)} className="w-full text-left bg-white border border-gray-100 hover:border-purple-300 hover:bg-purple-50 p-2 rounded flex justify-between items-center transition-colors">
+                              <div className="flex flex-col overflow-hidden">
+                                <span className="text-xs font-bold text-gray-700 truncate">{a.company}</span>
+                                <span className="text-[10px] text-gray-500 truncate">{a.name || '担当者名なし'}</span>
+                              </div>
+                              <span className="text-[10px] bg-purple-600 text-white px-2 py-1 rounded shadow-sm whitespace-nowrap flex items-center gap-1">
+                                <Send size={10} /> Gmail
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
@@ -682,7 +739,6 @@
             <div><label className="block text-xs font-bold text-gray-400 mb-1">件名</label><input type="text" className="w-full p-2 border rounded font-bold" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} /></div>
             <div>
               <div className="flex flex-wrap gap-2 mb-2">
-                {/* 業者用のキーワードボタンをはじめ、全種類のキーワードボタンを完備 */}
                 {['［お客様名］', '［媒体名］', '［物件のエリア・種別］', '［自社名］', '［担当者名］', '［携帯電話番号］', '［事務所電話番号］', '［業者会社名］', '［業者担当者名］'].map(ph => (
                   <button key={ph} type="button" onClick={() => insert(ph)} className={`text-[10px] bg-white border px-2 py-1 rounded shadow-sm font-bold ${ph.includes('業者') ? 'text-purple-600 border-purple-200' : 'text-blue-600 border-blue-200'}`}>{ph}</button>
                 ))}

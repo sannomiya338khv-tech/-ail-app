@@ -50,6 +50,10 @@
     const Users = (p) => <Icon {...p} path={<g><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>} />;
     const Mail = (p) => <Icon {...p} path={<g><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></g>} />;
     const Building = (p) => <Icon {...p} path={<g><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></g>} />;
+    const SettingsIcon = (p) => <Icon {...p} path={<g><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></g>} />;
+    const ChevronDown = (p) => <Icon {...p} path={<polyline points="6 9 12 15 18 9"/>} />;
+    const Smartphone = (p) => <Icon {...p} path={<g><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></g>} />;
+
 
     const AGENCY_GROUPS = ['一般', 'マンション買取', '戸建買取', '土地買取', 'その他'];
     const CATEGORY_GROUPS = [
@@ -254,7 +258,7 @@
             </header>
             <div className="flex-1 overflow-y-auto bg-gray-50 pb-safe px-4 md:px-6 py-4">
               {currentView === 'agencies' ? <AgencyManager agencies={agencies} onAdd={saveAgencyToCloud} onDelete={deleteAgencyFromCloud} onUpdate={updateAgencyInCloud} showNotification={showNotification} /> : (
-                <>{!editingTemplate && <div className="bg-white border rounded-xl shadow-sm mb-6 p-4 max-w-5xl mx-auto"><details className="group"><summary className="cursor-pointer font-bold text-gray-700 flex items-center justify-between outline-none"><span className="flex items-center gap-2"><Users size={18} className="text-orange-500" /> 基本設定（端末ごとに保存）</span><ChevronDown className="group-open:rotate-180 transition-transform text-gray-400" size={18} /></summary>
+                <>{!editingTemplate && <div className="bg-white border rounded-xl shadow-sm mb-6 p-4 max-w-5xl mx-auto"><details className="group"><summary className="cursor-pointer font-bold text-gray-700 flex items-center justify-between outline-none"><span className="flex items-center gap-2"><SettingsIcon size={18} className="text-orange-500" /> 基本設定（端末ごとに保存）</span><ChevronDown className="group-open:rotate-180 transition-transform text-gray-400" size={18} /></summary>
                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-2">{[['自社名', 'companyName'], ['担当者名', 'staffName'], ['携帯', 'mobilePhone'], ['事務所', 'officePhone']].map(([label, key]) => (
                             <div key={key}><label className="block text-[10px] font-bold text-gray-400 mb-1">{label}</label><input type="text" value={settings[key]} onChange={e => setSettings({...settings, [key]: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-orange-500 text-gray-700" /></div>))}
                         </div></details></div>}

@@ -55,8 +55,6 @@
     const Smartphone = (p) => <Icon {...p} path={<g><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></g>} />;
 
     const AGENCY_GROUPS = ['一般', 'マンション買取', '戸建買取', '土地買取', 'その他'];
-    
-    // ★ ここをすべての項目がある完全な状態に修正しました！ ★
     const CATEGORY_GROUPS = [
       { id: 'general', label: '', items: [{ id: 'all', name: 'すべて', icon: <Folder size={18} /> }] },
       { id: 'standard', label: '通常対応', items: [
@@ -78,7 +76,6 @@
         { id: 'agency_template', name: '業者個別送信 (Gmail)', icon: <Building size={18} /> }
       ]}
     ];
-    
     const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap(group => group.items);
 
     function AgencyManager({ agencies, onAdd, onDelete, onUpdate, showNotification }) {
@@ -168,6 +165,7 @@
       
       const [copyModal, setCopyModal] = useState(null); 
       const [modalInputs, setModalInputs] = useState({});
+      const [newMediaInput, setNewMediaInput] = useState('');
 
       const resetFirebaseConfig = () => {
         if (confirm("設定をリセットして初期の黒い画面に戻りますか？")) {
@@ -218,7 +216,16 @@
       const deleteAgencyFromCloud = async (id) => { if (confirm("削除しますか？")) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).delete(); };
       const updateAgencyInCloud = async (id, data) => { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).update(data); };
       const showNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
-      const executeCopy = (text, label) => { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showNotification(`${label}をコピーしました`); };
+      
+      const executeCopy = (text, label) => { 
+        const ta = document.createElement("textarea"); 
+        ta.value = text; 
+        document.body.appendChild(ta); 
+        ta.select(); 
+        document.execCommand('copy'); 
+        document.body.removeChild(ta); 
+        showNotification(`${label}をコピーしました`); 
+      };
       
       const handleCopyRequest = (text, label) => {
         const matches = text.match(/［.+?］/g); const filtered = matches ? matches.filter(m => !['［業者会社名］','［業者担当者名］'].includes(m)) : null;
@@ -279,7 +286,12 @@
             {notification && <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-fade-in-up z-50 shadow-2xl transition-all"><Check size={16} className="text-green-400" />{notification}</div>}
             
             {copyModal && <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up"><div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 flex flex-col max-h-[90vh]"><h3 className="text-lg font-bold mb-4 text-gray-800">未入力項目の設定</h3><div className="overflow-y-auto flex-1 space-y-4 pr-2 mb-4 text-gray-700">{copyModal.placeholders.map((ph, idx) => (
-                      <div key={idx} className="bg-gray-50 p-4 rounded-lg border"><label className="block text-xs font-bold text-gray-500 mb-2">{ph}</label><input type="text" value={modalInputs[ph] || ''} onChange={e => setModalInputs({...modalInputs, [ph]: e.target.value})} className="w-full p-2 border rounded outline-none text-sm focus:ring-1 focus:ring-orange-500" /></div>))}</div>
+                      <div key={idx} className="bg-gray-50 p-4 rounded-lg border"><label className="block text-xs font-bold text-gray-500 mb-2">{ph}</label>
+                      {ph === '［媒体名］' ? (
+                          <div><div className="flex flex-wrap gap-2 mb-3">{(settings.mediaList || ['すまいステップ', 'リビンマッチ']).map((m, i) => (<button key={i} onClick={() => setModalInputs({...modalInputs, [ph]: m})} className={`px-3 py-2 text-sm font-bold rounded-lg border ${modalInputs[ph]===m?'bg-orange-600 text-white border-orange-600 shadow-md':'bg-white text-orange-600 border-orange-200'}`}>{m}</button>))}</div>
+                            <div className="flex gap-2"><input type="text" value={newMediaInput} onChange={e => setNewMediaInput(e.target.value)} className="flex-1 p-2 border rounded text-sm outline-none" placeholder="媒体名を追加" /><button onClick={() => { if(!newMediaInput) return; setSettings({...settings, mediaList: [...(settings.mediaList || []), newMediaInput]}); setNewMediaInput(''); }} className="px-4 py-2 bg-slate-800 text-white rounded text-xs font-bold">追加</button></div></div>
+                        ) : (<input type="text" value={modalInputs[ph] || ''} onChange={e => setModalInputs({...modalInputs, [ph]: e.target.value})} className="w-full p-2 border rounded outline-none text-sm focus:ring-1 focus:ring-orange-500" />)}
+                      </div>))}</div>
                   <div className="flex justify-end gap-3 pt-4 border-t"><button onClick={() => setCopyModal(null)} className="px-5 py-2 text-gray-400 font-bold">中止</button><button onClick={() => { let res = copyModal.text; copyModal.placeholders.forEach(ph => { res = res.split(ph).join(modalInputs[ph] || ph); }); executeCopy(res, copyModal.label); setCopyModal(null); }} className="px-6 py-2 bg-orange-600 text-white rounded shadow-md flex items-center gap-2 font-bold hover:bg-orange-500 transition-colors"><Copy size={16} /> コピー実行</button></div></div></div>}
           </main>
         </div>

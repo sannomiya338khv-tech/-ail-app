@@ -84,12 +84,16 @@
     ];
     const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap(group => group.items);
 
+    // ★ 404エラーなどの詳細な理由を画面に表示するための改良版 Fetch
     const fetchWithRetry = async (url, options, maxRetries = 5) => {
       const delays = [1000, 2000, 4000, 8000, 16000];
       for (let i = 0; i < maxRetries; i++) {
         try {
           const response = await fetch(url, options);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`HTTP ${response.status} - ${errText}`);
+          }
           return response;
         } catch (error) {
           if (i === maxRetries - 1) throw error;
@@ -339,13 +343,14 @@
 
         setIsGenerating(true);
         try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+          const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
           
-          const systemPrompt = "あなたは優秀な不動産営業マンです。ユーザーの要望に応じた丁寧なメールを件名と本文に分けて作成してください。宛名などは［お客様名］などの形式を使用。レスポンスは以下のJSON形式のみを出力： { \"subject\": \"件名\", \"body\": \"本文\" }";
+          const systemPrompt = "あなたは優秀な不動産営業マンです。ユーザーの要望に応じた丁寧なメールを件名と本文に分けて作成してください。宛名などは［お客様名］などの形式を使用。レスポンスは必ず以下のJSON形式のみを出力： { \"subject\": \"件名\", \"body\": \"本文\" }";
           
           const payload = {
             contents: [{ parts: [{ text: aiPrompt }] }],
-            systemInstruction: { parts: [{ text: systemPrompt }] }
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            generationConfig: { responseMimeType: "application/json" }
           };
 
           const response = await fetchWithRetry(url, {
@@ -357,7 +362,6 @@
           const data = await response.json();
           
           if (data.error) {
-             console.error("API Error Details:", data.error);
              throw new Error(data.error.message || "APIエラーが発生しました");
           }
 
@@ -365,7 +369,7 @@
           if (text) {
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
-            setFormData(prev => ({ ...prev, subject: parsed.subject, body: parsed.body }));
+            setFormData(prev => ({ ...prev, subject: parsed.subject || prev.subject, body: parsed.body || prev.body }));
             showNotification('AIがメール案を作成しました！');
             setShowAiPanel(false); setAiPrompt('');
           } else {
@@ -373,7 +377,8 @@
           }
         } catch (e) { 
           console.error("Detailed Error:", e);
-          showNotification(`生成に失敗しました。詳細: ${e.message}`); 
+          const errMsg = e.message.substring(0, 100);
+          showNotification(`生成に失敗: ${errMsg}`); 
         } finally { 
           setIsGenerating(false); 
         }

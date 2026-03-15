@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>メールテンプレート管理 (Unified Sync)</title>
+  <title>メールテンプレート管理 (AI + Sync)</title>
   
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -24,6 +24,8 @@
     .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     .animate-fade-in-up { animation: fadeInUp 0.3s ease-out; }
     @keyframes fadeInUp { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(234, 88, 12, 0); } 100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0); } }
+    .animate-pulse-ring { animation: pulse-ring 2s infinite; }
   </style>
 </head>
 <body>
@@ -53,6 +55,9 @@
     const SettingsIcon = (p) => <Icon {...p} path={<g><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></g>} />;
     const ChevronDown = (p) => <Icon {...p} path={<polyline points="6 9 12 15 18 9"/>} />;
     const Smartphone = (p) => <Icon {...p} path={<g><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></g>} />;
+    // AIアイコンの追加
+    const Sparkles = (p) => <Icon {...p} path={<g><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></g>} />;
+    const Bot = (p) => <Icon {...p} path={<g><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></g>} />;
 
     const AGENCY_GROUPS = ['一般', 'マンション買取', '戸建買取', '土地買取', 'その他'];
     const CATEGORY_GROUPS = [
@@ -60,23 +65,31 @@
       { id: 'standard', label: '通常対応', items: [
         { id: 'initial', name: '初期対応', icon: <MessageSquare size={18} /> },
         { id: 'followup', name: '追撃・検討伺い', icon: <Clock size={18} /> },
-        { id: 'reengage', name: '長期・掘り起こし', icon: <RotateCcw size={18} /> },
       ]},
-      { id: 'satei', label: '一括査定対応用（Eメール）', items: [
+      { id: 'satei', label: '一括査定用', items: [
         { id: 'satei_initial', name: '初期対応（メール）', icon: <MessageSquare size={18} /> },
-        { id: 'satei_followup', name: '追客・追撃（メール）', icon: <Clock size={18} /> },
-        { id: 'satei_reengage', name: '長期・掘り起こし（メール）', icon: <RotateCcw size={18} /> },
-      ]},
-      { id: 'satei_sms', label: '一括査定対応用（SMS）', items: [
-        { id: 'satei_initial_sms', name: '初期対応（SMS）', icon: <Smartphone size={18} /> },
-        { id: 'satei_followup_sms', name: '追客・追撃（SMS）', icon: <Smartphone size={18} /> },
-        { id: 'satei_reengage_sms', name: '長期・掘り起こし（SMS）', icon: <Smartphone size={18} /> },
+        { id: 'satei_sms', name: '初期対応（SMS）', icon: <Send size={18} /> },
       ]},
       { id: 'agency', label: '業者対応用', items: [
         { id: 'agency_template', name: '業者個別送信 (Gmail)', icon: <Building size={18} /> }
       ]}
     ];
     const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap(group => group.items);
+
+    // --- 指数バックオフ付きフェッチ関数 ---
+    const fetchWithRetry = async (url, options, maxRetries = 5) => {
+      const delays = [1000, 2000, 4000, 8000, 16000];
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const response = await fetch(url, options);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          return response;
+        } catch (error) {
+          if (i === maxRetries - 1) throw error;
+          await new Promise(resolve => setTimeout(resolve, delays[i]));
+        }
+      }
+    };
 
     function AgencyManager({ agencies, onAdd, onDelete, onUpdate, showNotification }) {
       const [formData, setFormData] = useState({ company: '', name: '', email: '', group: '一般' });
@@ -87,54 +100,30 @@
       };
       return (
         <div className="max-w-4xl mx-auto space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800"><Plus size={20} className="text-purple-500"/> 新規業者登録</h2>
             <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-12 gap-3">
               <div className="sm:col-span-2"><label className="block text-[10px] font-bold text-gray-400 mb-1">グループ</label>
-              <select value={formData.group} onChange={e => setFormData({...formData, group: e.target.value})} className="w-full p-2 border rounded text-sm bg-white">{AGENCY_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
-              <div className="sm:col-span-3"><label className="block text-[10px] font-bold text-gray-400 mb-1">会社名</label><input required type="text" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full p-2 border rounded text-sm" /></div>
-              <div className="sm:col-span-2"><label className="block text-[10px] font-bold text-gray-400 mb-1">担当者</label><input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-2 border rounded text-sm" /></div>
-              <div className="sm:col-span-3"><label className="block text-[10px] font-bold text-gray-400 mb-1">メール</label><input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-2 border rounded text-sm" /></div>
-              <div className="sm:col-span-2 flex items-end"><button type="submit" className="w-full bg-purple-600 text-white p-2 rounded font-bold">登録</button></div>
+              <select value={formData.group} onChange={e => setFormData({...formData, group: e.target.value})} className="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-purple-500">{AGENCY_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
+              <div className="sm:col-span-3"><label className="block text-[10px] font-bold text-gray-400 mb-1">会社名</label><input required type="text" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" /></div>
+              <div className="sm:col-span-2"><label className="block text-[10px] font-bold text-gray-400 mb-1">担当者</label><input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" /></div>
+              <div className="sm:col-span-3"><label className="block text-[10px] font-bold text-gray-400 mb-1">メール</label><input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-purple-500" /></div>
+              <div className="sm:col-span-2 flex items-end"><button type="submit" className="w-full bg-purple-600 text-white p-2 rounded font-bold shadow-sm hover:bg-purple-700 transition-colors">登録</button></div>
             </form>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-gray-700">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="p-3 w-28 text-gray-500">グループ</th>
-                    <th className="p-3">会社名</th>
-                    <th className="p-3">担当</th>
-                    <th className="p-3">メール</th>
-                    <th className="p-3 text-center">削除</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {agencies.map(a => (
-                    <tr key={a.id} className="border-b hover:bg-gray-50">
-                      <td className="p-3">
-                        <select value={a.group || '一般'} onChange={(e) => onUpdate(a.id, { group: e.target.value })} className="text-[10px] bg-gray-100 p-1 rounded font-bold border cursor-pointer">
-                          {AGENCY_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
-                        </select>
-                      </td>
-                      <td className="p-3 font-medium">{a.company}</td>
-                      <td className="p-3">{a.name}</td>
-                      <td className="p-3 text-blue-600">{a.email}</td>
-                      <td className="p-3 text-center">
-                        <button onClick={() => onDelete(a.id)} className="text-gray-400 hover:text-red-500 p-1"><Trash2 size={16}/></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto"><table className="w-full text-left text-sm text-gray-700">
+                <thead className="bg-gray-50 border-b"><tr><th className="p-3 w-28 text-gray-500">グループ</th><th className="p-3">会社名</th><th className="p-3">担当</th><th className="p-3">メール</th><th className="p-3 text-center">削除</th></tr></thead>
+                <tbody>{agencies.map(a => (<tr key={a.id} className="border-b hover:bg-gray-50 transition-colors">
+                      <td className="p-3"><select value={a.group || '一般'} onChange={(e) => onUpdate(a.id, { group: e.target.value })} className="text-[10px] bg-gray-100 p-1 rounded font-bold border cursor-pointer outline-none focus:ring-1 focus:ring-purple-500">{AGENCY_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}</select></td>
+                      <td className="p-3 font-medium">{a.company}</td><td className="p-3">{a.name}</td><td className="p-3 text-blue-600">{a.email}</td>
+                      <td className="p-3 text-center"><button onClick={() => onDelete(a.id)} className="text-gray-400 hover:text-red-500 p-1"><Trash2 size={16}/></button></td></tr>))}</tbody>
+            </table></div>
           </div>
         </div>
       );
     }
 
-    // --- メインアプリ ---
     function App() {
       const [db, setDb] = useState(null); 
       const [user, setUser] = useState(null);
@@ -216,16 +205,7 @@
       const deleteAgencyFromCloud = async (id) => { if (confirm("削除しますか？")) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).delete(); };
       const updateAgencyInCloud = async (id, data) => { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).update(data); };
       const showNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
-      
-      const executeCopy = (text, label) => { 
-        const ta = document.createElement("textarea"); 
-        ta.value = text; 
-        document.body.appendChild(ta); 
-        ta.select(); 
-        document.execCommand('copy'); 
-        document.body.removeChild(ta); 
-        showNotification(`${label}をコピーしました`); 
-      };
+      const executeCopy = (text, label) => { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showNotification(`${label}をコピーしました`); };
       
       const handleCopyRequest = (text, label) => {
         const matches = text.match(/［.+?］/g); const filtered = matches ? matches.filter(m => !['［業者会社名］','［業者担当者名］'].includes(m)) : null;
@@ -244,7 +224,7 @@
         <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6 text-center">
           <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
             <h2 className="text-2xl font-bold mb-4 text-orange-500">Firebase設定</h2>
-            <p className="text-xs text-slate-400 mb-6 font-bold">★ここに貼り付けたカギがすべてのデバイスで共通になります</p>
+            <p className="text-xs text-slate-400 mb-6 font-bold">設定コードを貼り付けてください</p>
             <textarea className="w-full h-48 p-4 bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs mb-4 outline-none focus:ring-2 focus:ring-orange-500" placeholder="firebaseConfig の中身を貼り付け" value={configInput} onChange={e => setConfigInput(e.target.value)} />
             <button onClick={handleConfigSubmit} className="w-full bg-orange-600 py-3 rounded-lg font-bold shadow-lg">設定を保存して開始</button>
           </div>
@@ -264,7 +244,7 @@
               <div className="mt-4 border-t border-slate-700 pt-4 px-2"><button onClick={() => { setCurrentView('agencies'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-colors ${currentView === 'agencies' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-700'}`}><Users size={18} /> 🏢 業者アドレス帳</button></div>
             </nav>
             <div className="p-4 border-t border-slate-700 pb-safe">
-              <button onClick={() => { setCurrentView('templates'); setEditingTemplate({ title: '', category: activeCategory==='all'?'satei_initial':activeCategory, subject: '', body: '' }); setIsMobileMenuOpen(false); }} className="w-full bg-emerald-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-bold shadow-md mb-4"><Plus size={18} /> 新規作成</button>
+              <button onClick={() => { setCurrentView('templates'); setEditingTemplate({ title: '', category: activeCategory==='all'?'satei_initial':activeCategory, subject: '', body: '' }); setIsMobileMenuOpen(false); }} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-bold shadow-md mb-4 transition-colors"><Plus size={18} /> 新規作成</button>
               <button onClick={resetFirebaseConfig} className="w-full text-[10px] text-red-400 hover:text-red-300 font-bold flex items-center justify-center gap-1 transition-colors"><RotateCcw size={10}/> 接続設定をリセット</button>
             </div>
           </aside>
@@ -276,23 +256,35 @@
             <div className="flex-1 overflow-y-auto bg-gray-50 pb-safe px-4 md:px-6 py-4">
               {currentView === 'agencies' ? <AgencyManager agencies={agencies} onAdd={saveAgencyToCloud} onDelete={deleteAgencyFromCloud} onUpdate={updateAgencyInCloud} showNotification={showNotification} /> : (
                 <>{!editingTemplate && <div className="bg-white border rounded-xl shadow-sm mb-6 p-4 max-w-5xl mx-auto"><details className="group"><summary className="cursor-pointer font-bold text-gray-700 flex items-center justify-between outline-none"><span className="flex items-center gap-2"><SettingsIcon size={18} className="text-orange-500" /> 基本設定（端末ごとに保存）</span><ChevronDown className="group-open:rotate-180 transition-transform text-gray-400" size={18} /></summary>
-                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-2">{[['自社名', 'companyName'], ['担当者名', 'staffName'], ['携帯', 'mobilePhone'], ['事務所', 'officePhone']].map(([label, key]) => (
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-2 text-gray-800">
+                          {[["自社名", "companyName"], ["担当者名", "staffName"], ["携帯", "mobilePhone"], ["事務所", "officePhone"]].map(([label, key]) => (
                             <div key={key}><label className="block text-[10px] font-bold text-gray-400 mb-1">{label}</label><input type="text" value={settings[key]} onChange={e => setSettings({...settings, [key]: e.target.value})} className="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-orange-500 text-gray-700" /></div>))}
                         </div></details></div>}
-                  <div className="max-w-5xl mx-auto">{editingTemplate ? <Editor template={editingTemplate} onSave={saveToCloud} onCancel={() => setEditingTemplate(null)} categories={CATEGORY_GROUPS} /> : 
+                  <div className="max-w-5xl mx-auto">{editingTemplate ? <Editor template={editingTemplate} onSave={saveToCloud} onCancel={() => setEditingTemplate(null)} categories={CATEGORY_GROUPS} showNotification={showNotification} /> : 
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">{templates.filter(t => (activeCategory === 'all' || t.category === activeCategory) && (t.title.includes(searchQuery)||t.body.includes(searchQuery))).map(t => (
                           <TemplateCard key={t.id} template={{...t, subject: t.subject.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone), body: t.body.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone)}} originalTemplate={t} agencies={agencies} onSendToAgency={handleSendToAgency} onCopy={handleCopyRequest} onEdit={setEditingTemplate} onDelete={deleteFromCloud} getCategoryName={id => ALL_CATEGORIES.find(c => c.id === id)?.name} />))}</div>}</div></>)}
             </div>
             {notification && <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-fade-in-up z-50 shadow-2xl transition-all"><Check size={16} className="text-green-400" />{notification}</div>}
             
-            {copyModal && <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up"><div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 flex flex-col max-h-[90vh]"><h3 className="text-lg font-bold mb-4 text-gray-800">未入力項目の設定</h3><div className="overflow-y-auto flex-1 space-y-4 pr-2 mb-4 text-gray-700">{copyModal.placeholders.map((ph, idx) => (
-                      <div key={idx} className="bg-gray-50 p-4 rounded-lg border"><label className="block text-xs font-bold text-gray-500 mb-2">{ph}</label>
+            {copyModal && <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up"><div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 flex flex-col max-h-[90vh] text-gray-800"><h3 className="text-lg font-bold mb-4">未入力項目の設定</h3><div className="overflow-y-auto flex-1 space-y-4 pr-2 mb-4 text-gray-700">{copyModal.placeholders.map((ph, idx) => (
+                      <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-200"><label className="block text-xs font-bold text-gray-500 mb-2">{ph}</label>
                       {ph === '［媒体名］' ? (
-                          <div><div className="flex flex-wrap gap-2 mb-3">{(settings.mediaList || ['すまいステップ', 'リビンマッチ']).map((m, i) => (<button key={i} onClick={() => setModalInputs({...modalInputs, [ph]: m})} className={`px-3 py-2 text-sm font-bold rounded-lg border ${modalInputs[ph]===m?'bg-orange-600 text-white border-orange-600 shadow-md':'bg-white text-orange-600 border-orange-200'}`}>{m}</button>))}</div>
-                            <div className="flex gap-2"><input type="text" value={newMediaInput} onChange={e => setNewMediaInput(e.target.value)} className="flex-1 p-2 border rounded text-sm outline-none" placeholder="媒体名を追加" /><button onClick={() => { if(!newMediaInput) return; setSettings({...settings, mediaList: [...(settings.mediaList || []), newMediaInput]}); setNewMediaInput(''); }} className="px-4 py-2 bg-slate-800 text-white rounded text-xs font-bold">追加</button></div></div>
-                        ) : (<input type="text" value={modalInputs[ph] || ''} onChange={e => setModalInputs({...modalInputs, [ph]: e.target.value})} className="w-full p-2 border rounded outline-none text-sm focus:ring-1 focus:ring-orange-500" />)}
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap gap-2">
+                              {(settings.mediaList || ['すまいステップ', 'リビンマッチ']).map((m, i) => (
+                                <button key={i} onClick={() => setModalInputs({...modalInputs, [ph]: m})} className={`px-3 py-2 text-sm font-bold rounded-lg border transition-all ${modalInputs[ph]===m?'bg-orange-600 text-white border-orange-600 shadow-md':'bg-white text-orange-600 border-orange-200 hover:bg-orange-50'}`}>{m}</button>
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <input type="text" value={newMediaInput} onChange={e => setNewMediaInput(e.target.value)} className="flex-1 p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-orange-500" placeholder="新しい媒体名を追加" />
+                              <button onClick={() => { if(!newMediaInput) return; setSettings({...settings, mediaList: [...(settings.mediaList || []), newMediaInput]}); setNewMediaInput(''); }} className="px-4 py-2 bg-slate-800 text-white rounded text-xs font-bold hover:bg-slate-700 transition-colors">追加</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <input type="text" value={modalInputs[ph] || ''} onChange={e => setModalInputs({...modalInputs, [ph]: e.target.value})} className="w-full p-2 border rounded outline-none text-sm focus:ring-1 focus:ring-orange-500" placeholder={`${ph.replace(/［|］/g, '')}を入力`} />
+                        )}
                       </div>))}</div>
-                  <div className="flex justify-end gap-3 pt-4 border-t"><button onClick={() => setCopyModal(null)} className="px-5 py-2 text-gray-400 font-bold">中止</button><button onClick={() => { let res = copyModal.text; copyModal.placeholders.forEach(ph => { res = res.split(ph).join(modalInputs[ph] || ph); }); executeCopy(res, copyModal.label); setCopyModal(null); }} className="px-6 py-2 bg-orange-600 text-white rounded shadow-md flex items-center gap-2 font-bold hover:bg-orange-500 transition-colors"><Copy size={16} /> コピー実行</button></div></div></div>}
+                  <div className="flex justify-end gap-3 pt-4 border-t"><button onClick={() => setCopyModal(null)} className="px-5 py-2 text-gray-400 font-bold hover:bg-gray-50 rounded transition-colors">中止</button><button onClick={() => { let res = copyModal.text; copyModal.placeholders.forEach(ph => { res = res.split(ph).join(modalInputs[ph] || ph); }); executeCopy(res, copyModal.label); setCopyModal(null); }} className="px-6 py-2 bg-orange-600 text-white rounded shadow-md flex items-center gap-2 font-bold hover:bg-orange-700 transition-all"><Copy size={16} /> コピー実行</button></div></div></div>}
           </main>
         </div>
       );
@@ -324,23 +316,154 @@
       );
     }
 
-    function Editor({ template, onSave, onCancel, categories }) {
+    // --- AI組み込みエディター ---
+    function Editor({ template, onSave, onCancel, categories, showNotification }) {
       const [formData, setFormData] = useState({ ...template, id: template.id || crypto.randomUUID() }); 
       const bodyRef = useRef(null);
       const [isSaving, setIsSaving] = useState(false);
+      
+      // AI用のステート
+      const [showAiPanel, setShowAiPanel] = useState(false);
+      const [aiPrompt, setAiPrompt] = useState('');
+      const [isGenerating, setIsGenerating] = useState(false);
+
       const insert = ph => { const s = bodyRef.current.selectionStart; const e = bodyRef.current.selectionEnd; const b = formData.body || ''; setFormData({...formData, body: b.substring(0, s) + ph + b.substring(e)}); setTimeout(() => { bodyRef.current.selectionStart = bodyRef.current.selectionEnd = s + ph.length; bodyRef.current.focus(); }, 0); };
+
+      // Gemini APIの呼び出し処理
+      const generateEmailWithAI = async () => {
+        if (!aiPrompt.trim()) return showNotification('プロンプト（要望）を入力してください');
+        setIsGenerating(true);
+        
+        try {
+          // ※ 本来はバックエンドで秘匿すべきですが、今回はフロントエンドから直接実行します
+          const apiKey = ""; // APIキーは実行環境から自動挿入されます
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+          
+          const systemPrompt = `あなたは優秀な不動産営業マンです。ユーザーの要望に合わせて、顧客に送る丁寧で効果的なメールの「件名」と「本文」を作成してください。
+          宛名や会社名などの可変部分は「［お客様名］」などのプレースホルダーを使用してください。
+          レスポンスは以下のJSON形式のみを出力してください。マークダウンの装飾は不要です。
+          {
+            "subject": "作成したメールの件名",
+            "body": "作成したメールの本文"
+          }`;
+
+          const payload = {
+            contents: [{ parts: [{ text: aiPrompt }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] }
+          };
+
+          const response = await fetchWithRetry(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await response.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+          if (text) {
+            let parsedData = { subject: "", body: "" };
+            try {
+              // 稀に返ってくる ```json などのマークダウンを取り除く
+              let cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+              parsedData = JSON.parse(cleanText);
+            } catch (e) {
+              // パース失敗時のフォールバック
+              parsedData.body = text;
+              parsedData.subject = "【AI生成】件名をご確認ください";
+            }
+            
+            // フォームに反映
+            setFormData(prev => ({ 
+              ...prev, 
+              subject: parsedData.subject || prev.subject, 
+              body: parsedData.body || prev.body 
+            }));
+            showNotification('AIがメール文を生成しました！');
+            setShowAiPanel(false);
+            setAiPrompt('');
+          }
+        } catch (error) {
+          console.error("AI Generation Error:", error);
+          showNotification('生成に失敗しました。少し待ってから再度お試しください。');
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+
       return (
         <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-fade-in-up">
-          <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center"><h3 className="font-bold text-lg">{template.id?'編集':'新規作成'}</h3><button onClick={onCancel} className="p-1 hover:bg-slate-700 rounded transition-colors"><X size={24} /></button></div>
-          <form onSubmit={async e => { e.preventDefault(); if (isSaving) return; setIsSaving(true); await onSave(formData); setIsSaving(false); }} className="p-6 space-y-6 text-gray-800">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div><label className="block text-xs font-bold text-gray-400 mb-1">タイトル</label><input type="text" className="w-full p-3 border rounded-lg font-bold focus:ring-2 focus:ring-orange-500 outline-none" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required disabled={isSaving} /></div>
-              <div><label className="block text-xs font-bold text-gray-400 mb-1">カテゴリ</label><select className="w-full p-3 border rounded-lg bg-white font-bold focus:ring-2 focus:ring-orange-500 outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} disabled={isSaving}>{categories.map(g => g.id!=='general'&&<optgroup key={g.id} label={g.label}>{g.items.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>)}</select></div>
+          <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
+            <h3 className="font-bold text-lg flex items-center gap-2">
+              {template.id ? <Edit2 size={20} /> : <Plus size={20} />} {template.id ? '編集' : '新規作成'}
+            </h3>
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setShowAiPanel(!showAiPanel)} 
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-bold transition-all ${showAiPanel ? 'bg-orange-600 text-white' : 'bg-slate-700 text-orange-400 hover:bg-slate-600'}`}
+              >
+                <Sparkles size={16} /> AIで生成
+              </button>
+              <button onClick={onCancel} className="p-1 hover:bg-slate-700 rounded transition-colors"><X size={24} /></button>
             </div>
-            <div><label className="block text-xs font-bold text-gray-400 mb-1">件名</label><input type="text" className="w-full p-3 border rounded-lg font-bold focus:ring-2 focus:ring-orange-500 outline-none" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} disabled={isSaving} /></div>
+          </div>
+
+          {/* AI生成パネル */}
+          {showAiPanel && (
+            <div className="bg-orange-50 border-b border-orange-100 p-6 flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <div className="bg-orange-200 p-2 rounded-lg text-orange-700 mt-1"><Bot size={20} /></div>
+                <div className="flex-1">
+                  <label className="block text-sm font-bold text-orange-800 mb-2">どんなメールを作成しますか？</label>
+                  <textarea 
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="例：1週間前に査定書を送ったが返信がないお客様へ、相場が上がっていることを伝えて再検討を促す追客メール"
+                    className="w-full p-3 border border-orange-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-orange-500 h-24 resize-none shadow-inner"
+                    disabled={isGenerating}
+                  />
+                  <div className="flex justify-between items-center mt-3">
+                    <p className="text-[10px] text-orange-600 font-medium">※現在の「件名」「本文」に入力されている内容は上書きされます。</p>
+                    <button 
+                      onClick={generateEmailWithAI}
+                      disabled={isGenerating || !aiPrompt.trim()}
+                      className={`px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition-all ${isGenerating ? 'bg-orange-300 cursor-not-allowed text-white' : 'bg-orange-600 hover:bg-orange-700 text-white shadow-md active:scale-95'}`}
+                    >
+                      {isGenerating ? (
+                         <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> 生成中...</>
+                      ) : (
+                         <><Sparkles size={16} /> AIに作らせる</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={async e => { e.preventDefault(); if (isSaving) return; setIsSaving(true); await onSave(formData); setIsSaving(false); }} className="p-6 space-y-6 text-gray-800 relative">
+            
+            {/* 生成中のオーバーレイ */}
+            {isGenerating && (
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-b-xl">
+                 <div className="flex flex-col items-center gap-4 text-orange-600">
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full absolute inset-0 animate-pulse-ring"></div>
+                      <Sparkles size={48} className="animate-pulse relative z-10" />
+                    </div>
+                    <p className="font-bold text-lg animate-pulse">AIが最適なメール文を考案中です...</p>
+                 </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div><label className="block text-xs font-bold text-gray-400 mb-1">タイトル</label><input type="text" className="w-full p-3 border rounded-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required disabled={isSaving} /></div>
+              <div><label className="block text-xs font-bold text-gray-400 mb-1">カテゴリ</label><select className="w-full p-3 border rounded-lg bg-white font-bold focus:ring-2 focus:ring-blue-500 outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} disabled={isSaving}>{categories.map(g => g.id!=='general'&&<optgroup key={g.id} label={g.label}>{g.items.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</optgroup>)}</select></div>
+            </div>
+            <div><label className="block text-xs font-bold text-gray-400 mb-1">件名</label><input type="text" className="w-full p-3 border rounded-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} disabled={isSaving} /></div>
             <div><div className="flex flex-wrap gap-2 mb-2 text-gray-800">{['［お客様名］', '［媒体名］', '［物件のエリア・種別］', '［自社名］', '［担当者名］', '［携帯電話番号］', '［事務所電話番号］', '［業者会社名］', '［業者担当者名］'].map(ph => (<button key={ph} type="button" onClick={() => insert(ph)} className={`text-[10px] bg-white border px-2.5 py-1.5 rounded-lg shadow-sm font-bold ${ph.includes('業者') ? 'text-purple-600 border-purple-200' : 'text-blue-600 border-blue-200'} hover:shadow-md transition-all active:scale-95`} disabled={isSaving}>{ph}</button>))}</div>
-              <textarea ref={bodyRef} className="w-full h-80 p-4 border rounded-lg font-mono text-sm outline-none focus:ring-2 focus:ring-orange-500 text-gray-700 custom-scrollbar leading-relaxed" value={formData.body} onChange={e => setFormData({...formData, body: e.target.value})} required disabled={isSaving} /></div>
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100"><button type="button" onClick={onCancel} className="px-6 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors" disabled={isSaving}>中止</button><button type="submit" className="px-10 py-3 bg-orange-600 text-white rounded-lg shadow-lg font-bold hover:bg-orange-700 transition-all active:scale-95" disabled={isSaving}>{isSaving ? '保存中...' : '保存して同期'}</button></div>
+              <textarea ref={bodyRef} className="w-full h-80 p-4 border rounded-lg font-mono text-sm outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 custom-scrollbar leading-relaxed" value={formData.body} onChange={e => setFormData({...formData, body: e.target.value})} required disabled={isSaving} /></div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100"><button type="button" onClick={onCancel} className="px-6 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors" disabled={isSaving}>中止</button><button type="submit" className="px-10 py-3 bg-blue-600 text-white rounded-lg shadow-lg font-bold hover:bg-blue-700 transition-all active:scale-95 disabled:bg-gray-400" disabled={isSaving}>{isSaving ? '保存中...' : '保存して同期'}</button></div>
           </form>
         </div>
       );

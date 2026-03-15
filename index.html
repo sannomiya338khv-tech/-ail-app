@@ -84,15 +84,23 @@
     ];
     const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap(group => group.items);
 
-    // ★ 404エラーなどの詳細な理由を画面に表示するための改良版 Fetch
-    const fetchWithRetry = async (url, options, maxRetries = 5) => {
-      const delays = [1000, 2000, 4000, 8000, 16000];
+    // ★ エラー詳細を取得できるよう改良した fetch
+    const fetchWithRetry = async (url, options, maxRetries = 2) => {
+      const delays = [1000, 2000];
       for (let i = 0; i < maxRetries; i++) {
         try {
           const response = await fetch(url, options);
           if (!response.ok) {
+            // サーバーからのエラー文を読み取って画面に出す
             const errText = await response.text();
-            throw new Error(`HTTP ${response.status} - ${errText}`);
+            let errMsg = errText;
+            try {
+              const errJson = JSON.parse(errText);
+              if (errJson.error && errJson.error.message) {
+                errMsg = errJson.error.message;
+              }
+            } catch(e) {}
+            throw new Error(`HTTP ${response.status}: ${errMsg}`);
           }
           return response;
         } catch (error) {
@@ -343,7 +351,8 @@
 
         setIsGenerating(true);
         try {
-          const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+          // ★ AIモデルを最新の gemini-2.5-flash に変更
+          const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
           
           const systemPrompt = "あなたは優秀な不動産営業マンです。ユーザーの要望に応じた丁寧なメールを件名と本文に分けて作成してください。宛名などは［お客様名］などの形式を使用。レスポンスは必ず以下のJSON形式のみを出力： { \"subject\": \"件名\", \"body\": \"本文\" }";
           

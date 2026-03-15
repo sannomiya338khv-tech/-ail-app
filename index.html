@@ -7,6 +7,28 @@
   
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <!-- 追加：オレンジ調のメールアイコンを自動生成 -->
+  <script>
+    (function(){
+      var c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = '#ea580c'; // オレンジ色
+      ctx.fillRect(0,0,256,256);
+      ctx.strokeStyle = '#ffffff'; // 白い線
+      ctx.lineWidth = 16;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.strokeRect(48, 72, 160, 112); // 封筒の枠
+      ctx.beginPath(); ctx.moveTo(48, 72); ctx.lineTo(128, 136); ctx.lineTo(208, 72); ctx.stroke(); // 封筒のフラップ
+      var link = document.createElement('link'); link.rel = 'apple-touch-icon'; link.href = c.toDataURL('image/png');
+      document.head.appendChild(link);
+      var icon = document.createElement('link'); icon.rel = 'icon'; icon.type = 'image/png'; icon.href = c.toDataURL('image/png');
+      document.head.appendChild(icon);
+    })();
+  </script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -354,7 +376,8 @@
           // ★ AIモデルを最新の gemini-2.5-flash に変更
           const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
           
-          const systemPrompt = "あなたは優秀な不動産営業マンです。ユーザーの要望に応じた丁寧なメールを件名と本文に分けて作成してください。宛名などは［お客様名］などの形式を使用。レスポンスは必ず以下のJSON形式のみを出力： { \"subject\": \"件名\", \"body\": \"本文\" }";
+          // ★ 署名を含めないようAIへの指示を強化
+          const systemPrompt = "あなたは優秀な不動産営業マンです。ユーザーの要望に応じた丁寧なメールを件名と本文に分けて作成してください。宛名などは［お客様名］などの形式を使用。本文の最後は「よろしくお願いいたします。」などの結びの言葉で終わらせ、会社名や氏名、連絡先などの「署名（シグネチャ）ブロック」は絶対に含めないでください。レスポンスは必ず以下のJSON形式のみを出力： { \"subject\": \"件名\", \"body\": \"本文\" }";
           
           const payload = {
             contents: [{ parts: [{ text: aiPrompt }] }],

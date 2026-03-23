@@ -7,25 +7,50 @@
   
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mail Cloud">
+  <meta name="theme-color" content="#ea580c">
   
-  <!-- 追加：オレンジ調のメールアイコンを自動生成 -->
   <script>
     (function(){
       var c = document.createElement('canvas');
-      c.width = 256; c.height = 256;
+      c.width = 512; c.height = 512;
       var ctx = c.getContext('2d');
-      ctx.fillStyle = '#ea580c'; // オレンジ色
-      ctx.fillRect(0,0,256,256);
-      ctx.strokeStyle = '#ffffff'; // 白い線
-      ctx.lineWidth = 16;
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 32;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
-      ctx.strokeRect(48, 72, 160, 112); // 封筒の枠
-      ctx.beginPath(); ctx.moveTo(48, 72); ctx.lineTo(128, 136); ctx.lineTo(208, 72); ctx.stroke(); // 封筒のフラップ
-      var link = document.createElement('link'); link.rel = 'apple-touch-icon'; link.href = c.toDataURL('image/png');
-      document.head.appendChild(link);
-      var icon = document.createElement('link'); icon.rel = 'icon'; icon.type = 'image/png'; icon.href = c.toDataURL('image/png');
+      ctx.strokeRect(96, 144, 320, 224);
+      ctx.beginPath(); 
+      ctx.moveTo(96, 144); 
+      ctx.lineTo(256, 272); 
+      ctx.lineTo(416, 144); 
+      ctx.stroke();
+      
+      var dataUrl = c.toDataURL('image/png');
+      var icon = document.createElement('link'); 
+      icon.rel = 'icon'; icon.type = 'image/png'; icon.href = dataUrl;
       document.head.appendChild(icon);
+      var appleIcon = document.createElement('link'); 
+      appleIcon.rel = 'apple-touch-icon'; appleIcon.href = dataUrl;
+      document.head.appendChild(appleIcon);
+
+      var manifest = {
+        name: "Mail Cloud",
+        short_name: "Mail Cloud",
+        display: "standalone",
+        start_url: ".",
+        theme_color: "#ea580c",
+        background_color: "#ffffff",
+        icons: [
+          { src: dataUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+        ]
+      };
+      var manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+      document.head.appendChild(manifestLink);
     })();
   </script>
 
@@ -55,7 +80,6 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // --- アイコンコンポーネント ---
     const Icon = ({ path, size = 24, className = "" }) => (
       <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
     );
@@ -106,14 +130,12 @@
     ];
     const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap(group => group.items);
 
-    // ★ エラー詳細を取得できるよう改良した fetch
     const fetchWithRetry = async (url, options, maxRetries = 2) => {
       const delays = [1000, 2000];
       for (let i = 0; i < maxRetries; i++) {
         try {
           const response = await fetch(url, options);
           if (!response.ok) {
-            // サーバーからのエラー文を読み取って画面に出す
             const errText = await response.text();
             let errMsg = errText;
             try {
@@ -132,7 +154,6 @@
       }
     };
 
-    // --- コンポーネント: 業者管理 ---
     function AgencyManager({ agencies, onAdd, onDelete, onUpdate, showNotification }) {
       const [formData, setFormData] = useState({ company: '', name: '', email: '', group: '一般' });
       const handleSubmit = (e) => {
@@ -195,7 +216,8 @@
       const [notification, setNotification] = useState(null); 
       const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
       
-      const [copyModal, setCopyModal] = useState(null); 
+      // ★ actionModal として統合（copy と gmail の両方のアクションを管理）
+      const [actionModal, setActionModal] = useState(null); 
       const [modalInputs, setModalInputs] = useState({});
       const [newMediaInput, setNewMediaInput] = useState('');
 
@@ -248,19 +270,61 @@
       const deleteAgencyFromCloud = async (id) => { if (confirm("削除しますか？")) await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).delete(); };
       const updateAgencyInCloud = async (id, data) => { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('agencies').doc(id.toString()).update(data); };
       const showNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
-      const executeCopy = (text, label) => { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showNotification(`${label}をコピーしました`); };
       
-      const handleCopyRequest = (text, label) => {
-        const matches = text.match(/［.+?］/g); const filtered = matches ? matches.filter(m => !['［業者会社名］','［業者担当者名］'].includes(m)) : null;
-        if (filtered && filtered.length > 0) { const unique = [...new Set(filtered)]; setModalInputs(Object.fromEntries(unique.map(ph => [ph, '']))); setCopyModal({ text, label, placeholders: unique }); }
-        else executeCopy(text, label);
+      const executeCopy = (text, label) => { 
+        const ta = document.createElement("textarea"); 
+        ta.value = text; 
+        document.body.appendChild(ta); 
+        ta.select(); 
+        document.execCommand('copy'); 
+        document.body.removeChild(ta); 
+        showNotification(`${label}をコピーしました`); 
       };
       
-      const handleSendToAgency = (template, agency) => {
-        let body = template.body.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || '担当者');
-        let subject = template.subject.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || '担当者');
+      const handleCopyRequest = (text, label) => {
+        const matches = text.match(/［.+?］/g); 
+        const filtered = matches ? matches.filter(m => !['［業者会社名］','［業者担当者名］'].includes(m)) : null;
+        if (filtered && filtered.length > 0) { 
+          const unique = [...new Set(filtered)]; 
+          setModalInputs(Object.fromEntries(unique.map(ph => [ph, '']))); 
+          setActionModal({ type: 'copy', text, label, placeholders: unique }); 
+        } else { 
+          executeCopy(text, label); 
+        }
+      };
+      
+      // ★ Gmailで開く際の実処理
+      const executeSendToAgency = (template, agency, inputs = {}) => {
+        let body = template.body;
+        let subject = template.subject;
+
+        // ユーザーが入力したプレースホルダーを置換
+        Object.keys(inputs).forEach(ph => {
+          body = body.split(ph).join(inputs[ph] || ph);
+          subject = subject.split(ph).join(inputs[ph] || ph);
+        });
+
+        // 業者情報を置換
+        body = body.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || '担当者');
+        subject = subject.replace(/［業者会社名］/g, agency.company).replace(/［業者担当者名］/g, agency.name || '担当者');
+
         const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(agency.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         window.open(url, '_blank'); 
+      };
+
+      // ★ Gmailで開く前のリクエスト処理（プレースホルダーのチェック）
+      const handleSendToAgencyRequest = (template, agency) => {
+        const combinedText = (template.subject || '') + '\n' + (template.body || '');
+        const matches = combinedText.match(/［.+?］/g);
+        const filtered = matches ? matches.filter(m => !['［業者会社名］','［業者担当者名］'].includes(m)) : null;
+        
+        if (filtered && filtered.length > 0) {
+          const unique = [...new Set(filtered)];
+          setModalInputs(Object.fromEntries(unique.map(ph => [ph, ''])));
+          setActionModal({ type: 'gmail', template, agency, placeholders: unique });
+        } else {
+          executeSendToAgency(template, agency, {});
+        }
       };
 
       if (!isConfigured) return (
@@ -309,11 +373,12 @@
                         </div></details></div>}
                   <div className="max-w-5xl mx-auto">{editingTemplate ? <Editor template={editingTemplate} onSave={saveToCloud} onCancel={() => setEditingTemplate(null)} categories={CATEGORY_GROUPS} showNotification={showNotification} settings={settings} /> : 
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">{templates.filter(t => (activeCategory === 'all' || t.category === activeCategory) && (t.title.includes(searchQuery)||t.body.includes(searchQuery))).map(t => (
-                          <TemplateCard key={t.id} template={{...t, subject: t.subject.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone), body: t.body.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone)}} originalTemplate={t} agencies={agencies} onSendToAgency={handleSendToAgency} onCopy={handleCopyRequest} onEdit={setEditingTemplate} onDelete={deleteFromCloud} getCategoryName={id => ALL_CATEGORIES.find(c => c.id === id)?.name} />))}</div>}</div></>)}
+                          <TemplateCard key={t.id} template={{...t, subject: t.subject.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone), body: t.body.replace(/［自社名］/g, settings.companyName).replace(/［担当者名］/g, settings.staffName).replace(/［携帯電話番号］/g, settings.mobilePhone).replace(/［事務所電話番号］/g, settings.officePhone)}} originalTemplate={t} agencies={agencies} onSendToAgency={handleSendToAgencyRequest} onCopy={handleCopyRequest} onEdit={setEditingTemplate} onDelete={deleteFromCloud} getCategoryName={id => ALL_CATEGORIES.find(c => c.id === id)?.name} />))}</div>}</div></>)}
             </div>
             {notification && <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-fade-in-up z-50 shadow-2xl transition-all"><Check size={16} className="text-green-400" />{notification}</div>}
             
-            {copyModal && <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up text-gray-800"><div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 flex flex-col max-h-[90vh]"><h3 className="text-lg font-bold mb-4">未入力項目の設定</h3><div className="overflow-y-auto flex-1 space-y-4 pr-2 mb-4">{copyModal.placeholders.map((ph, idx) => (
+            {/* ★ 統合アクションモーダル (コピー / Gmail共通) ★ */}
+            {actionModal && <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up text-gray-800"><div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 flex flex-col max-h-[90vh]"><h3 className="text-lg font-bold mb-4">未入力項目の設定</h3><div className="overflow-y-auto flex-1 space-y-4 pr-2 mb-4">{actionModal.placeholders.map((ph, idx) => (
                       <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-200"><label className="block text-xs font-bold text-gray-500 mb-2">{ph}</label>
                       {ph === '［媒体名］' ? (
                           <div className="space-y-3">
@@ -322,7 +387,22 @@
                           </div>
                         ) : (<input type="text" value={modalInputs[ph] || ''} onChange={e => setModalInputs({...modalInputs, [ph]: e.target.value})} className="w-full p-2 border rounded outline-none text-sm focus:ring-1 focus:ring-orange-500" />)}
                       </div>))}</div>
-                  <div className="flex justify-end gap-3 pt-4 border-t"><button onClick={() => setCopyModal(null)} className="px-5 py-2 text-gray-400 font-bold">中止</button><button onClick={() => { let res = copyModal.text; copyModal.placeholders.forEach(ph => { res = res.split(ph).join(modalInputs[ph] || ph); }); executeCopy(res, copyModal.label); setCopyModal(null); }} className="px-6 py-2 bg-orange-600 text-white rounded shadow-md flex items-center gap-2 font-bold hover:bg-orange-700 transition-all"><Copy size={16} /> コピー実行</button></div></div></div>}
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <button onClick={() => setActionModal(null)} className="px-5 py-2 text-gray-400 font-bold">中止</button>
+                    <button onClick={() => { 
+                      if (actionModal.type === 'copy') {
+                        let res = actionModal.text; 
+                        actionModal.placeholders.forEach(ph => { res = res.split(ph).join(modalInputs[ph] || ph); }); 
+                        executeCopy(res, actionModal.label); 
+                      } else if (actionModal.type === 'gmail') {
+                        executeSendToAgency(actionModal.template, actionModal.agency, modalInputs);
+                      }
+                      setActionModal(null); 
+                    }} className="px-6 py-2 bg-orange-600 text-white rounded shadow-md flex items-center gap-2 font-bold hover:bg-orange-700 transition-all">
+                      {actionModal.type === 'copy' ? <><Copy size={16} /> コピー実行</> : <><Send size={16} /> Gmailを開く</>}
+                    </button>
+                  </div>
+            </div></div>}
           </main>
         </div>
       );
@@ -373,10 +453,8 @@
 
         setIsGenerating(true);
         try {
-          // ★ AIモデルを最新の gemini-2.5-flash に変更
           const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
           
-          // ★ 署名を含めないようAIへの指示を強化
           const systemPrompt = "あなたは優秀な不動産営業マンです。ユーザーの要望に応じた丁寧なメールを件名と本文に分けて作成してください。宛名などは［お客様名］などの形式を使用。本文の最後は「よろしくお願いいたします。」などの結びの言葉で終わらせ、会社名や氏名、連絡先などの「署名（シグネチャ）ブロック」は絶対に含めないでください。レスポンスは必ず以下のJSON形式のみを出力： { \"subject\": \"件名\", \"body\": \"本文\" }";
           
           const payload = {
